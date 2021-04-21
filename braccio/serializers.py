@@ -27,6 +27,3 @@ class RoutineSerializer(serializers.ModelSerializer):
         for i, step_data in enumerate(steps_data):
             Step.objects.create(routine=routine, order=i, **step_data)
         return routine
-    
-    def update(self, validated_data):
-        
