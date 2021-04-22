@@ -24,6 +24,5 @@ class Step(models.Model):
     m5 = models.IntegerField()
     m6 = models.IntegerField()
 
-    
     class Meta:
         ordering = ['order']
