@@ -3,7 +3,18 @@ from rest_framework import routers
 
 from .views import BraccioViewSet, RoutineViewSet
 
-router = routers.DefaultRouter()
+
+class OptionalSlashRouter(routers.DefaultRouter):
+    """
+    A router that will work with endpoints both with and without a trailing slash.
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.trailing_slash = '/?'
+
+
+router = OptionalSlashRouter()
 router.register(r'braccio', BraccioViewSet)
 router.register(r'routines', RoutineViewSet)
 

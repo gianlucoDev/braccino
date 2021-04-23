@@ -125,3 +125,6 @@ STATIC_URL = '/static/'
 
 # Allow CORS requests from all domains
 CORS_ALLOW_ALL_ORIGINS = True
+
+# Do not append slashes to request URLs
+APPEND_SLASH=False
