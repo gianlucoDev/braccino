@@ -15,7 +15,7 @@ class OptionalSlashRouter(routers.DefaultRouter):
 
 
 router = OptionalSlashRouter()
-router.register(r'braccio', BraccioViewSet)
+router.register(r'braccio', BraccioViewSet, basename='braccio')
 router.register(r'routines', RoutineViewSet)
 
 app_name = 'braccio'

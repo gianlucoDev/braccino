@@ -1,12 +1,6 @@
 from django.db import models
 
 
-class Braccio(models.Model):
-    name = models.CharField(max_length=50)
-    # TODO: validate path
-    serial = models.CharField(max_length=255)
-
-
 class Routine(models.Model):
     name = models.CharField(max_length=50)
 

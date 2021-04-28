@@ -1,11 +1,10 @@
 from rest_framework import serializers
-from .models import Braccio, Routine, Step
+from .models import Routine, Step
 
 
-class BraccioSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Braccio
-        fields = ['id', 'name', 'serial']
+class BraccioSerializer(serializers.Serializer):
+    name = serializers.CharField(max_length=200)
+    serial = serializers.CharField(max_length=200)
 
 
 class StepSerializer(serializers.ModelSerializer):
