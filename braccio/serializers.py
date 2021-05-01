@@ -3,11 +3,15 @@ from .models import Routine, Step
 
 
 class BraccioStatusSerializer(serializers.Serializer):
+    # pylint: disable=abstract-method
+
     def to_representation(self, instance):
         return {"ok": instance.ok, "code": instance.name}
 
 
 class BraccioSerializer(serializers.Serializer):
+    # pylint: disable=abstract-method
+
     name = serializers.CharField(max_length=200)
     serial_path = serializers.CharField(max_length=200)
     status = BraccioStatusSerializer()
