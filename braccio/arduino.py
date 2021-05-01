@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 import shutil
 import subprocess
 import json
@@ -9,6 +11,12 @@ from django.http import Http404
 REFRESH_INTERVAL = 5
 
 
+@dataclass
+class Arduino:
+    name: str
+    serial: str
+
+
 def get_boards():
     executable = shutil.which('arduino-cli')
     if not executable:
@@ -16,7 +24,15 @@ def get_boards():
 
     result = subprocess.run(
         [executable, 'board', 'list', '--format=json'], capture_output=True, check=True)
-    return json.loads(result.stdout)
+    data = json.loads(result.stdout)
+
+    arduinos = []
+    for item in data:
+        if item['protocol'] == 'serial':
+            arduino = Arduino(item['boards'][0]['name'], item['address'])
+            arduinos.append(arduino)
+
+    return arduinos
 
 
 class ArduinoManager:
@@ -31,16 +47,7 @@ class ArduinoManager:
             time.sleep(REFRESH_INTERVAL)
 
     def refresh_list(self):
-        arduinos = []
-
-        for item in get_boards():
-            if item['protocol'] == 'serial':
-                arduinos.append({
-                    'name': item['boards'][0]['name'],
-                    'serial': item['address'],
-                })
-
-        self.arduinos = arduinos
+        self.arduinos = get_boards()
 
     def get_arduino(self, pk):
         arduino = ARDUINO_MANAGER.arduinos[pk]
