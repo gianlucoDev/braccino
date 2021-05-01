@@ -1,30 +1,43 @@
-import serial
-import serial.tools.list_ports
+import shutil
+import subprocess
+import json
+import threading
+import time
 
 from django.http import Http404
 
+REFRESH_INTERVAL = 5
 
-CONNECTED_ARDUINOS = []
+
+def get_boards():
+    executable = shutil.which('arduino-cli')
+    if not executable:
+        raise FileNotFoundError('arduino-cli is not in the system path')
+
+    result = subprocess.run(
+        [executable, 'board', 'list', '--format=json'], capture_output=True, check=True)
+    return json.loads(result.stdout)
 
 
 class ArduinoManager:
     def __init__(self):
         self.arduinos = []
+        self.thread = threading.Thread(target=self._do_refresh)
+        self.thread.start()
 
-    def _is_arduino(self, port):
-        # return "arduino" in port.description.lower()
-
-        # TODO: actually detect arduino
-        return port.device == '/dev/ttyACM0'
+    def _do_refresh(self):
+        while True:
+            self.refresh_list()
+            time.sleep(REFRESH_INTERVAL)
 
     def refresh_list(self):
         arduinos = []
 
-        for i, port in enumerate(serial.tools.list_ports.comports()):
-            if self._is_arduino(port):
+        for item in get_boards():
+            if item['protocol'] == 'serial':
                 arduinos.append({
-                    'name': f'braccio{i}',
-                    'serial': port.device,
+                    'name': item['boards'][0]['name'],
+                    'serial': item['address'],
                 })
 
         self.arduinos = arduinos
