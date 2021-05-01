@@ -2,9 +2,15 @@ from rest_framework import serializers
 from .models import Routine, Step
 
 
+class BraccioStatusSerializer(serializers.Serializer):
+    def to_representation(self, instance):
+        return {"ok": instance.ok, "code": instance.name}
+
+
 class BraccioSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=200)
-    serial = serializers.CharField(max_length=200)
+    serial_path = serializers.CharField(max_length=200)
+    status = BraccioStatusSerializer()
 
 
 class StepSerializer(serializers.ModelSerializer):
