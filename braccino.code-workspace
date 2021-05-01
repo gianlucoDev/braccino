@@ -4,6 +4,13 @@
       "path": "."
     }
   ],
+  "extensions": {
+    "recommendations": [
+      "ms-python.python",
+      "vsciot-vscode.vscode-arduino",
+      "esbenp.prettier-vscode"
+    ]
+  },
   "settings": {
     "python.formatting.provider": "autopep8",
     "python.linting.enabled": true,
@@ -12,6 +19,7 @@
       "--disable=C0111", // missing docstring
       "--load-plugins=pylint_django",
       "--django-settings-module=braccino.settings"
-    ]
+    ],
+    "C_Cpp.clang_format_fallbackStyle": "Google"
   }
 }
