@@ -3,11 +3,9 @@ from rest_framework import viewsets
 from rest_framework.response import Response
 from rest_framework.decorators import action
 
-from .models import Routine
-from .serializers import BraccioSerializer, RoutineSerializer
-
+from routines.models import Routine
 from .arduino import ARDUINO_MANAGER, get_arduino_or_404
-
+from .serializers import BraccioSerializer
 
 class BraccioViewSet(viewsets.ViewSet):
 
@@ -29,8 +27,3 @@ class BraccioViewSet(viewsets.ViewSet):
         print(braccio)
 
         return Response({"ok": True})
-
-
-class RoutineViewSet(viewsets.ModelViewSet):
-    queryset = Routine.objects.all()
-    serializer_class = RoutineSerializer

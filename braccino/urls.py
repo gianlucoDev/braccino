@@ -15,9 +15,28 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from rest_framework import routers
+
+from braccio.views import BraccioViewSet
+from routines.views import RoutineViewSet
+
+
+class OptionalSlashRouter(routers.DefaultRouter):
+    """
+    A router that will work with endpoints both with and without a trailing slash.
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.trailing_slash = '/?'
+
+
+router = OptionalSlashRouter()
+router.register(r'braccio', BraccioViewSet, basename='braccio')
+router.register(r'routines', RoutineViewSet)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('braccio.urls')),
+    path('', include(router.urls)),
     path('api-auth/', include('rest_framework.urls'))
 ]
