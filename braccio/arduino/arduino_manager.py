@@ -4,6 +4,7 @@ import subprocess
 import threading
 import time
 
+from braccio.util import Singleton
 from .arduino import Arduino
 
 
@@ -28,9 +29,12 @@ def get_boards():
 REFRESH_INTERVAL = 5
 
 
-class ArduinoManager:
+class ArduinoManager(metaclass=Singleton):
     def __init__(self):
         self.arduinos = []
+        self.refresh_list()
+
+        # start auto-refresh
         self.thread = threading.Thread(target=self._do_refresh)
         self.thread.start()
 
@@ -45,6 +49,3 @@ class ArduinoManager:
     def get_arduino(self, pk):
         arduino = self.arduinos[pk]
         return arduino
-
-
-ARDUINO_MANAGER = ArduinoManager()
