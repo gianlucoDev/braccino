@@ -11,7 +11,7 @@ from .serializers import BraccioSerializer
 class BraccioViewSet(viewsets.ViewSet):
 
     def list(self, request):
-        serializer = BraccioSerializer(ArduinoManager().arduinos, many=True)
+        serializer = BraccioSerializer(ArduinoManager().arduinos.values(), many=True)
         return Response(serializer.data)
 
     def retrieve(self, request, pk=None):

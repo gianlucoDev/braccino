@@ -20,7 +20,8 @@ def get_boards():
     arduinos = []
     for item in data:
         if item['protocol'] == 'serial':
-            arduino = Arduino(item['boards'][0]['name'], item['address'])
+            arduino = Arduino(item['boards'][0]['name'], item['serial_number'],
+                              item['address'], auto_connect=False)
             arduinos.append(arduino)
 
     return arduinos
@@ -31,7 +32,7 @@ REFRESH_INTERVAL = 5
 
 class ArduinoManager(metaclass=Singleton):
     def __init__(self):
-        self.arduinos = []
+        self.arduinos = {}
         self.refresh_list()
 
         # start auto-refresh
@@ -44,8 +45,9 @@ class ArduinoManager(metaclass=Singleton):
             time.sleep(REFRESH_INTERVAL)
 
     def refresh_list(self):
-        self.arduinos = get_boards()
+        board_list = get_boards()
+        dic = {arduino.serial_number: arduino for arduino in board_list}
+        self.arduinos = dic
 
-    def get_arduino(self, pk):
-        arduino = self.arduinos[pk]
-        return arduino
+    def get_arduino(self, serial_number: str):
+        return self.arduinos.get(serial_number)
