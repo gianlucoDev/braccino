@@ -33,7 +33,7 @@ REFRESH_INTERVAL = 5
 class ArduinoManager(metaclass=Singleton):
     def __init__(self):
         self.arduinos = {}
-        self.refresh_list()
+        self.refresh()  # refresh immediatly after instantiation
 
         # start auto-refresh
         self.thread = threading.Thread(target=self._do_refresh)
@@ -41,13 +41,25 @@ class ArduinoManager(metaclass=Singleton):
 
     def _do_refresh(self):
         while True:
-            self.refresh_list()
             time.sleep(REFRESH_INTERVAL)
+            self.refresh()
 
-    def refresh_list(self):
+    def refresh(self):
         board_list = get_boards()
-        dic = {arduino.serial_number: arduino for arduino in board_list}
-        self.arduinos = dic
+        board_dict = {arduino.serial_number: arduino for arduino in board_list}
+
+        old_keys = set(self.arduinos.keys())
+        new_keys = set(board_dict.keys())
+
+        removed = old_keys - new_keys
+        for key in removed:
+            arduino = self.arduinos.pop(key)
+            arduino.disconnect()
+
+        added = new_keys - old_keys
+        for key in added:
+            self.arduinos[key] = board_dict[key]
+            self.arduinos[key].connect()
 
     def get_arduino(self, serial_number: str):
         return self.arduinos.get(serial_number)

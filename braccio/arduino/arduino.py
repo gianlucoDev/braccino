@@ -73,3 +73,7 @@ class Arduino:
         # give the Arduino time to reset when the serial connection is opened
         time.sleep(1)
         self._handshake()
+
+    def disconnect(self):
+        if self.serial.is_open:
+            self.serial.close()
