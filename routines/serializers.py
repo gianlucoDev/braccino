@@ -26,7 +26,7 @@ class RoutineSerializer(serializers.ModelSerializer):
         instance.name = validated_data.get('name', instance.name)
 
         steps_data = validated_data.get('steps')
-        if steps_data:
+        if steps_data is not None:
             instance.steps.all().delete()
             for i, step_data in enumerate(steps_data):
                 Step.objects.create(routine=instance, order=i, **step_data)
