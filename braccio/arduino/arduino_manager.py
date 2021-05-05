@@ -27,7 +27,7 @@ def get_boards():
     return arduinos
 
 
-REFRESH_INTERVAL = 5
+REFRESH_INTERVAL = 60
 
 
 class ArduinoManager(metaclass=Singleton):
@@ -61,5 +61,5 @@ class ArduinoManager(metaclass=Singleton):
             self.arduinos[key] = board_dict[key]
             self.arduinos[key].connect()
 
-    def get_arduino(self, serial_number: str):
+    def get_arduino(self, serial_number: str) -> Arduino:
         return self.arduinos.get(serial_number)

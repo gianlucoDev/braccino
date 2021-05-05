@@ -1,3 +1,7 @@
+#include <Braccio.h>
+#include <Servo.h>
+
+// serial variables
 const byte startMarker = 0x3C;
 const byte endMarker = 0x3E;
 
@@ -7,11 +11,44 @@ byte numReceived = 0;
 
 boolean newData = false;
 
-void setup() { Serial.begin(9600); }
+// braccio variables
+Servo base;
+Servo shoulder;
+Servo elbow;
+Servo wrist_rot;
+Servo wrist_ver;
+Servo gripper;
+
+int rit, M1 = 90, M2 = 45, M3 = 180, M4 = 180, M5 = 90, M6 = 10;
+
+void setup() {
+  // Initialize serial
+  Serial.begin(9600);
+
+  // Initialize braccio
+  // All the servo motors will be positioned in the "safety" position:
+  //   Base (M1):90 degrees
+  //   Shoulder (M2): 45 degrees
+  //   Elbow (M3): 180 degrees
+  //   Wrist vertical (M4): 180 degrees
+  //   Wrist rotation (M5): 90 degrees
+  //   gripper (M6): 10 degrees
+  Braccio.begin();
+}
 
 void loop() {
   receiveData();
   handlePacket();
+
+  
+  // Step Delay: a milliseconds delay between the movement of each servo.  Allowed values from 10 to 30 msec.
+  // M1=base degrees. Allowed values from 0 to 180 degrees
+  // M2=shoulder degrees. Allowed values from 15 to 165 degrees
+  // M3=elbow degrees. Allowed values from 0 to 180 degrees
+  // M4=wrist vertical degrees. Allowed values from 0 to 180 degrees
+  // M5=wrist rotation degrees. Allowed values from 0 to 180 degrees
+  // M6=gripper degrees. Allowed values from 10 to 73 degrees. 10: the toungue is open, 73: the gripper is closed.
+  Braccio.ServoMovement(30, M1, M2, M3, M4, M5, M6);
 }
 
 void receiveData() {
@@ -49,6 +86,7 @@ void receiveData() {
 }
 
 const byte PING_ID = 0x00;
+const byte SETPOS_ID = 0x01;
 
 void handlePacket() {
   if (!newData) return;
@@ -56,6 +94,10 @@ void handlePacket() {
   switch (receivedBytes[0]) {
     case PING_ID:
       handlePing();
+      break;
+    
+    case SETPOS_ID:
+      handleSetPosition();
       break;
   }
 
@@ -65,4 +107,14 @@ void handlePacket() {
 void handlePing() {
   byte ping_data[] = {startMarker, 0x00, 0xFF, endMarker};
   Serial.write(ping_data, 3);
+}
+
+void handleSetPosition() {
+  // skip first byte because it's the packet type ID 
+  M1 = receivedBytes[1];
+  M2 = receivedBytes[2];
+  M3 = receivedBytes[3];
+  M4 = receivedBytes[4];
+  M5 = receivedBytes[5];
+  M6 = receivedBytes[6];
 }

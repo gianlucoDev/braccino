@@ -71,9 +71,12 @@ class Arduino:
             return
 
         # give the Arduino time to reset when the serial connection is opened
-        time.sleep(1)
+        time.sleep(20)
         self._handshake()
 
     def disconnect(self):
         if self.serial.is_open:
             self.serial.close()
+
+    def set_target_position(self, m1, m2, m3, m4, m5, m6):
+        self._write_packet([0x01, m1, m2, m3, m4, m5, m6])
