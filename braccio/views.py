@@ -6,21 +6,21 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 
 from routines.models import Routine
-from .arduino import ArduinoManager, get_arduino_or_404
+from .arduino import BraccioManager, get_braccio_or_404
 from .serializers import BraccioSerializer
 
-def _wait_for_position(arduino, expected):
-    current = arduino.get_current_position()
+def _wait_for_position(braccio, expected):
+    current = braccio.get_current_position()
     while current != expected:
-        current = arduino.get_current_position()
+        current = braccio.get_current_position()
         time.sleep(500 / 1000)
 
-def _run(arduino, routine):
+def _run(braccio, routine):
     for step in routine.steps.all():
         pos = (step.m1, step.m2, step.m3, step.m4, step.m5, step.m6)
 
-        arduino.set_target_position(*pos)
-        _wait_for_position(arduino, pos)
+        braccio.set_target_position(*pos)
+        _wait_for_position(braccio, pos)
         time.sleep(step.delay / 1000)
 
 
@@ -28,17 +28,17 @@ class BraccioViewSet(viewsets.ViewSet):
 
     def list(self, request):
         serializer = BraccioSerializer(
-            ArduinoManager().arduinos.values(), many=True)
+            BraccioManager().braccios.values(), many=True)
         return Response(serializer.data)
 
     def retrieve(self, request, pk=None):
-        arduino = get_arduino_or_404(ArduinoManager(), pk)
-        serializer = BraccioSerializer(arduino)
+        braccio = get_braccio_or_404(BraccioManager(), pk)
+        serializer = BraccioSerializer(braccio)
         return Response(serializer.data)
 
     @action(methods=["POST"], detail=True, url_path='run/(?P<routine_pk>[^/.]+)')
     def run(self, request, pk=None, routine_pk=None):
-        braccio = get_arduino_or_404(ArduinoManager(), pk)
+        braccio = get_braccio_or_404(BraccioManager(), pk)
         routine = get_object_or_404(Routine, pk=routine_pk)
 
         t = threading.Thread(target=_run, args=(braccio, routine))

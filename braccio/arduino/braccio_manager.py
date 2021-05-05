@@ -5,7 +5,7 @@ import threading
 import time
 
 from braccio.util import Singleton
-from .arduino import Arduino
+from .braccio import Braccio
 
 
 def get_serial_boards():
@@ -52,9 +52,9 @@ def get_serial_boards():
 REFRESH_INTERVAL = 60
 
 
-class ArduinoManager(metaclass=Singleton):
+class BraccioManager(metaclass=Singleton):
     def __init__(self):
-        self.arduinos = {}
+        self.braccios = {}
 
         # start auto-refresh
         self.thread = threading.Thread(target=self._do_refresh)
@@ -69,20 +69,20 @@ class ArduinoManager(metaclass=Singleton):
         board_list = get_serial_boards()
         board_dict = {board['serial_number']: board for board in board_list}
 
-        old_keys = set(self.arduinos.keys())
+        old_keys = set(self.braccios.keys())
         new_keys = set(board_dict.keys())
 
         removed = old_keys - new_keys
         for key in removed:
-            arduino = self.arduinos.pop(key)
-            arduino.disconnect()
+            braccio = self.braccios.pop(key)
+            braccio.disconnect()
 
         added = new_keys - old_keys
         for key in added:
             board = board_dict[key]
-            self.arduinos[key] = Arduino(board['boards'][0]['name'],
+            self.braccios[key] = Braccio(board['boards'][0]['name'],
                                          board['serial_number'], board['address'])
-            self.arduinos[key].connect()
+            self.braccios[key].connect()
 
-    def get_arduino(self, serial_number: str) -> Arduino:
-        return self.arduinos.get(serial_number)
+    def get_by_serial(self, serial_number: str) -> Braccio:
+        return self.braccios.get(serial_number)
