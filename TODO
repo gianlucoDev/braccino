@@ -1,0 +1,3 @@
+lock per avitare che due refresh vadano in contemporane
+
+lock per evitare che due routine vadano in contemporanea
