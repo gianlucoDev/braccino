@@ -11,6 +11,14 @@ byte numReceived = 0;
 
 boolean newData = false;
 
+// django -> arduino
+const byte SETPOS_ID = 0x01;
+const byte GETPOS_ID = 0x02;
+
+// django <- arduino
+const byte HELLO_ID = 0x00;
+const byte GETPOS_REPLY_ID = 0x02;
+
 // braccio variables
 Servo base;
 Servo shoulder;
@@ -40,7 +48,7 @@ void setup() {
 }
 
 void sendReady() {
-  byte ping_data[] = {startMarker, 0x00, 0xFF, endMarker};
+  byte ping_data[] = {startMarker, HELLO_ID, 0xFF, endMarker};
   Serial.write(ping_data, 3);
 }
 
@@ -94,9 +102,6 @@ void receiveData() {
   }
 }
 
-const byte SETPOS_ID = 0x01;
-const byte GETPOS_ID = 0x02;
-
 void handlePacket() {
   if (!newData) return;
 
@@ -124,6 +129,8 @@ void handleSetPosition() {
 }
 
 void handleGetPosition() {
-  byte pos_data[] = {startMarker, 0x02, M1, M2, M3, M4, M5, M6, endMarker};
+  byte pos_data[] = {startMarker, GETPOS_REPLY_ID, M1, M2, M3, M4, M5,
+                     M6,          endMarker};
+
   Serial.write(pos_data, 9);
 }

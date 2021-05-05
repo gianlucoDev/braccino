@@ -3,8 +3,17 @@ from enum import Enum
 
 from serial import Serial, to_bytes, SerialException
 
+# message markers
 START_MARKER = b'<'  # 0x3C
 END_MARKER = b'>'  # 0x3E
+
+# django -> arduino
+SETPOS_ID = 0x01
+GETPOS_ID = 0x02
+
+# django <- arduino
+HELLO_ID = 0x00
+GETPOS_REPLY_ID = 0x02
 
 # how many seconds should the Django app wait for the
 # Arduino to be ready before showing an error
@@ -61,7 +70,7 @@ class Arduino:
             data = self._read_packet()
 
             if data is not None:
-                if data == to_bytes([0x00, 0xFF]):
+                if data == to_bytes([HELLO_ID, 0xFF]):
                     self.status = ConnectionStatus.CONNECTED
                 else:
                     self.status = ConnectionStatus.ERR_NO_HANDSHAKE
@@ -90,10 +99,10 @@ class Arduino:
             self.serial.close()
 
     def set_target_position(self, m1, m2, m3, m4, m5, m6):
-        self._write_packet([0x01, m1, m2, m3, m4, m5, m6])
+        self._write_packet([SETPOS_ID, m1, m2, m3, m4, m5, m6])
 
     def get_current_position(self):
-        self._write_packet([0x02])
+        self._write_packet([GETPOS_ID])
         data = self._read_packet()
 
         # ignore fist byte because it's packet ID
