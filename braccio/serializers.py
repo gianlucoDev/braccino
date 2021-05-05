@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 
-class BraccioStatusSerializer(serializers.Serializer):
+class ConnectionStatusSerializer(serializers.Serializer):
     # pylint: disable=abstract-method
 
     def to_representation(self, instance):
@@ -14,4 +14,4 @@ class BraccioSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=200)
     serial_number = serializers.CharField(max_length=200)
     serial_path = serializers.CharField(max_length=200)
-    status = BraccioStatusSerializer()
+    status = ConnectionStatusSerializer()
