@@ -24,15 +24,13 @@ class ArduinoStatus(Enum):
 
 
 class Arduino:
-    def __init__(self, name, serial_number, serial_path, auto_connect=True):
+    def __init__(self, name, serial_number, serial_path):
         self.name = name
         self.serial_number = serial_number
 
         self.serial_path = serial_path
         self.serial = None
         self.status = ArduinoStatus.NOT_CONNECTED
-        if auto_connect:
-            self.connect()
 
     def _write_packet(self, data):
         data = to_bytes(data)

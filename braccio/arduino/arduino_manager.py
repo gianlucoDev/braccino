@@ -20,8 +20,8 @@ def get_boards():
     arduinos = []
     for item in data:
         if item['protocol'] == 'serial' and 'boards' in item:
-            arduino = Arduino(item['boards'][0]['name'], item['serial_number'],
-                              item['address'], auto_connect=False)
+            arduino = Arduino(item['boards'][0]['name'],
+                              item['serial_number'], item['address'])
             arduinos.append(arduino)
 
     return arduinos
