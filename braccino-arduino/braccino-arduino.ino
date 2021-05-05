@@ -19,7 +19,7 @@ Servo wrist_rot;
 Servo wrist_ver;
 Servo gripper;
 
-int rit, M1 = 90, M2 = 45, M3 = 180, M4 = 180, M5 = 90, M6 = 10;
+int M1 = 90, M2 = 45, M3 = 180, M4 = 180, M5 = 90, M6 = 10;
 
 void setup() {
   // Initialize serial
@@ -87,6 +87,7 @@ void receiveData() {
 
 const byte PING_ID = 0x00;
 const byte SETPOS_ID = 0x01;
+const byte GETPOS_ID = 0x02;
 
 void handlePacket() {
   if (!newData) return;
@@ -98,6 +99,10 @@ void handlePacket() {
     
     case SETPOS_ID:
       handleSetPosition();
+      break;
+
+    case GETPOS_ID:
+      handleGetPosition();
       break;
   }
 
@@ -117,4 +122,10 @@ void handleSetPosition() {
   M4 = receivedBytes[4];
   M5 = receivedBytes[5];
   M6 = receivedBytes[6];
+}
+
+
+void handleGetPosition() {
+  byte pos_data[] = {startMarker, 0x02, M1, M2, M3, M4, M5, M6, endMarker};
+  Serial.write(pos_data, 9);
 }

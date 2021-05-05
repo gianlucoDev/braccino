@@ -9,11 +9,18 @@ from routines.models import Routine
 from .arduino import ArduinoManager, get_arduino_or_404
 from .serializers import BraccioSerializer
 
+def _wait_for_position(arduino, expected):
+    current = arduino.get_current_position()
+    while current != expected:
+        current = arduino.get_current_position()
+        time.sleep(500 / 1000)
 
 def _run(arduino, routine):
     for step in routine.steps.all():
-        arduino.set_target_position(
-            step.m1, step.m2, step.m3, step.m4, step.m5, step.m6)
+        pos = (step.m1, step.m2, step.m3, step.m4, step.m5, step.m6)
+
+        arduino.set_target_position(*pos)
+        _wait_for_position(arduino, pos)
         time.sleep(step.delay / 1000)
 
 
