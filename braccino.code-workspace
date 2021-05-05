@@ -16,7 +16,15 @@
     "python.linting.enabled": true,
     "python.linting.pylintEnabled": true,
     "python.linting.pylintArgs": [
-      "--disable=C0111", // missing docstring
+      // missing docstring
+      "--disable=C0111",
+
+      // allow two letter variables
+      "--variable-rgx=[a-z0-9_]{2,30}$",
+      "--argument-rgx=[a-z0-9_]{2,30}$",
+      "--attr-rgx=[a-z0-9_]{2,30}$",
+
+      // Django plugin
       "--load-plugins=pylint_django",
       "--django-settings-module=braccino.settings"
     ],
