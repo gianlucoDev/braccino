@@ -8,7 +8,31 @@ from braccio.util import Singleton
 from .arduino import Arduino
 
 
-def get_boards():
+def get_serial_boards():
+    """
+    Retieves a list of boards using the Arduino CLI
+
+    Example output from the CLI:
+    ```json
+    [
+        {
+            "address": "/dev/ttyACM0",
+            "protocol": "serial",
+            "protocol_label": "Serial Port (USB)",
+            "boards": [
+                {
+                    "name": "Arduino Mega or Mega 2560",
+                    "fqbn": "arduino:avr:mega",
+                    "vid": "0x2341",
+                    "pid": "0x0042"
+                }
+            ],
+            "serial_number": "95931323132351011210"
+        }
+    ]
+    ```
+    """
+
     executable = shutil.which('arduino-cli')
     if not executable:
         raise FileNotFoundError('arduino-cli is not in the system path')
@@ -17,14 +41,12 @@ def get_boards():
         [executable, 'board', 'list', '--format=json'], capture_output=True, check=True)
     data = json.loads(result.stdout)
 
-    arduinos = []
+    boards = []
     for item in data:
         if item['protocol'] == 'serial' and 'boards' in item:
-            arduino = Arduino(item['boards'][0]['name'],
-                              item['serial_number'], item['address'])
-            arduinos.append(arduino)
+            boards.append(item)
 
-    return arduinos
+    return boards
 
 
 REFRESH_INTERVAL = 60
@@ -44,8 +66,8 @@ class ArduinoManager(metaclass=Singleton):
             time.sleep(REFRESH_INTERVAL)
 
     def refresh(self):
-        board_list = get_boards()
-        board_dict = {arduino.serial_number: arduino for arduino in board_list}
+        board_list = get_serial_boards()
+        board_dict = {board['serial_number']: board for board in board_list}
 
         old_keys = set(self.arduinos.keys())
         new_keys = set(board_dict.keys())
@@ -57,7 +79,9 @@ class ArduinoManager(metaclass=Singleton):
 
         added = new_keys - old_keys
         for key in added:
-            self.arduinos[key] = board_dict[key]
+            board = board_dict[key]
+            self.arduinos[key] = Arduino(board['boards'][0]['name'],
+                                         board['serial_number'], board['address'])
             self.arduinos[key].connect()
 
     def get_arduino(self, serial_number: str) -> Arduino:
