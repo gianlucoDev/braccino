@@ -33,7 +33,6 @@ REFRESH_INTERVAL = 60
 class ArduinoManager(metaclass=Singleton):
     def __init__(self):
         self.arduinos = {}
-        self.refresh()  # refresh immediatly after instantiation
 
         # start auto-refresh
         self.thread = threading.Thread(target=self._do_refresh)
@@ -41,8 +40,8 @@ class ArduinoManager(metaclass=Singleton):
 
     def _do_refresh(self):
         while True:
-            time.sleep(REFRESH_INTERVAL)
             self.refresh()
+            time.sleep(REFRESH_INTERVAL)
 
     def refresh(self):
         board_list = get_boards()

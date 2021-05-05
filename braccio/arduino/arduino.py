@@ -9,9 +9,10 @@ END_MARKER = b'>'  # 0x3E
 
 class ArduinoStatus(Enum):
     NOT_CONNECTED = (0, False)
-    ERR_NO_SERIAL = (1, False)
-    ERR_NO_HANDSHAKE = (2, False)
-    CONNECTED = (3, True)
+    CONNECTING = (1, False)
+    ERR_NO_SERIAL = (2, False)
+    ERR_NO_HANDSHAKE = (3, False)
+    CONNECTED = (4, True)
 
     def __new__(cls, value, _ok):
         obj = object.__new__(cls)
@@ -64,6 +65,7 @@ class Arduino:
         if self.status != ArduinoStatus.NOT_CONNECTED:
             raise ValueError("Serial port already open")
 
+        self.status = ArduinoStatus.CONNECTING
         try:
             self.serial = Serial(self.serial_path, 9600, timeout=1)
         except SerialException:
