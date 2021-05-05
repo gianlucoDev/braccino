@@ -1,5 +1,3 @@
-import time
-import threading
 from django.shortcuts import get_object_or_404
 from rest_framework import viewsets
 from rest_framework.response import Response
@@ -8,20 +6,6 @@ from rest_framework.decorators import action
 from routines.models import Routine
 from .arduino import BraccioManager, get_braccio_or_404
 from .serializers import BraccioSerializer
-
-def _wait_for_position(braccio, expected):
-    current = braccio.get_current_position()
-    while current != expected:
-        current = braccio.get_current_position()
-        time.sleep(500 / 1000)
-
-def _run(braccio, routine):
-    for step in routine.steps.all():
-        pos = (step.m1, step.m2, step.m3, step.m4, step.m5, step.m6)
-
-        braccio.set_target_position(*pos)
-        _wait_for_position(braccio, pos)
-        time.sleep(step.delay / 1000)
 
 
 class BraccioViewSet(viewsets.ViewSet):
@@ -41,7 +25,6 @@ class BraccioViewSet(viewsets.ViewSet):
         braccio = get_braccio_or_404(BraccioManager(), pk)
         routine = get_object_or_404(Routine, pk=routine_pk)
 
-        t = threading.Thread(target=_run, args=(braccio, routine))
-        t.start()
+        braccio.run(routine)
 
         return Response({"ok": True})
