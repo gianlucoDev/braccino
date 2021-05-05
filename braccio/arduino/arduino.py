@@ -6,6 +6,10 @@ from serial import Serial, to_bytes, SerialException
 START_MARKER = b'<'  # 0x3C
 END_MARKER = b'>'  # 0x3E
 
+# how many seconds should the Django app wait for the
+# Arduino to be ready before showing an error
+MAX_CONNECTION_WAIT_TIME = 20
+
 
 class ConnectionStatus(Enum):
     NOT_CONNECTED = (0, False)
@@ -50,14 +54,23 @@ class Arduino:
         _, data = parts
         return data
 
-    def _handshake(self):
-        self._write_packet([0x00])
-        data = self._read_packet()
+    def _wait_ready(self):
+        start_time = time.time()
 
-        if data == to_bytes([0x00, 0xFF]):
-            self.status = ConnectionStatus.CONNECTED
-        else:
-            self.status = ConnectionStatus.ERR_NO_HANDSHAKE
+        while True:
+            data = self._read_packet()
+
+            if data is not None:
+                if data == to_bytes([0x00, 0xFF]):
+                    self.status = ConnectionStatus.CONNECTED
+                else:
+                    self.status = ConnectionStatus.ERR_NO_HANDSHAKE
+                return
+
+            elapsed_time = time.time() - start_time
+            if elapsed_time > MAX_CONNECTION_WAIT_TIME:
+                self.status = ConnectionStatus.ERR_NO_HANDSHAKE
+                return
 
     def connect(self):
         if self.status != ConnectionStatus.NOT_CONNECTED:
@@ -70,9 +83,7 @@ class Arduino:
             self.status = ConnectionStatus.ERR_NO_SERIAL
             return
 
-        # give the Arduino time to reset when the serial connection is opened
-        time.sleep(20)
-        self._handshake()
+        self._wait_ready()
 
     def disconnect(self):
         if self.serial.is_open:

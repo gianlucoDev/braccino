@@ -34,20 +34,29 @@ void setup() {
   //   Wrist rotation (M5): 90 degrees
   //   gripper (M6): 10 degrees
   Braccio.begin();
+
+  // Signal that the arduino is ready
+  sendReady();
+}
+
+void sendReady() {
+  byte ping_data[] = {startMarker, 0x00, 0xFF, endMarker};
+  Serial.write(ping_data, 3);
 }
 
 void loop() {
   receiveData();
   handlePacket();
 
-  
-  // Step Delay: a milliseconds delay between the movement of each servo.  Allowed values from 10 to 30 msec.
-  // M1=base degrees. Allowed values from 0 to 180 degrees
-  // M2=shoulder degrees. Allowed values from 15 to 165 degrees
-  // M3=elbow degrees. Allowed values from 0 to 180 degrees
-  // M4=wrist vertical degrees. Allowed values from 0 to 180 degrees
-  // M5=wrist rotation degrees. Allowed values from 0 to 180 degrees
-  // M6=gripper degrees. Allowed values from 10 to 73 degrees. 10: the toungue is open, 73: the gripper is closed.
+  // Step Delay = a milliseconds delay between the movement of each servo;
+  //   Allowed values from 10 to 30 msec.
+  // M1 = base degrees. Allowed values from 0 to 180 degrees.
+  // M2 = shoulder degrees. Allowed values from 15 to 165 degrees.
+  // M3 = elbow degrees. Allowed values from 0 to 180 degrees.
+  // M4 = wrist vertical degrees. Allowed values from 0 to 180 degrees.
+  // M5 = wrist rotation degrees. Allowed values from 0 to 180 degrees.
+  // M6 = gripper degrees. Allowed values from 10 to 73 degrees; 10: the toungue
+  //   is open, 73: the gripper is closed.
   Braccio.ServoMovement(30, M1, M2, M3, M4, M5, M6);
 }
 
@@ -85,7 +94,6 @@ void receiveData() {
   }
 }
 
-const byte PING_ID = 0x00;
 const byte SETPOS_ID = 0x01;
 const byte GETPOS_ID = 0x02;
 
@@ -93,10 +101,6 @@ void handlePacket() {
   if (!newData) return;
 
   switch (receivedBytes[0]) {
-    case PING_ID:
-      handlePing();
-      break;
-    
     case SETPOS_ID:
       handleSetPosition();
       break;
@@ -109,13 +113,8 @@ void handlePacket() {
   newData = false;
 }
 
-void handlePing() {
-  byte ping_data[] = {startMarker, 0x00, 0xFF, endMarker};
-  Serial.write(ping_data, 3);
-}
-
 void handleSetPosition() {
-  // skip first byte because it's the packet type ID 
+  // skip first byte because it's the packet type ID
   M1 = receivedBytes[1];
   M2 = receivedBytes[2];
   M3 = receivedBytes[3];
@@ -123,7 +122,6 @@ void handleSetPosition() {
   M5 = receivedBytes[5];
   M6 = receivedBytes[6];
 }
-
 
 void handleGetPosition() {
   byte pos_data[] = {startMarker, 0x02, M1, M2, M3, M4, M5, M6, endMarker};
