@@ -1,88 +1,50 @@
-import json
 import shutil
 import subprocess
 import threading
-import time
 
-from braccio.util import Singleton
+from braccio.util.singleton import Singleton
+from braccio.util.json import json_iter
 from .braccio import Braccio
-
-
-def get_serial_boards():
-    """
-    Retieves a list of boards using the Arduino CLI
-
-    Example output from the CLI:
-    ```json
-    [
-        {
-            "address": "/dev/ttyACM0",
-            "protocol": "serial",
-            "protocol_label": "Serial Port (USB)",
-            "boards": [
-                {
-                    "name": "Arduino Mega or Mega 2560",
-                    "fqbn": "arduino:avr:mega",
-                    "vid": "0x2341",
-                    "pid": "0x0042"
-                }
-            ],
-            "serial_number": "95931323132351011210"
-        }
-    ]
-    ```
-    """
-
-    executable = shutil.which('arduino-cli')
-    if not executable:
-        raise FileNotFoundError('arduino-cli is not in the system path')
-
-    result = subprocess.run(
-        [executable, 'board', 'list', '--format=json'], capture_output=True, check=True)
-    data = json.loads(result.stdout)
-
-    boards = []
-    for item in data:
-        if item['protocol'] == 'serial' and 'boards' in item:
-            boards.append(item)
-
-    return boards
-
-
-REFRESH_INTERVAL = 60
 
 
 class BraccioManager(metaclass=Singleton):
     def __init__(self):
         self.braccios = {}
 
-        # start auto-refresh
-        self.thread = threading.Thread(target=self._do_refresh)
+        # watch for board changes
+        self.thread = threading.Thread(target=self._listen_for_updates)
         self.thread.start()
 
-    def _do_refresh(self):
-        while True:
-            self.refresh()
-            time.sleep(REFRESH_INTERVAL)
+    def _listen_for_updates(self):
+        executable = shutil.which('arduino-cli')
+        if not executable:
+            raise FileNotFoundError('arduino-cli is not in the system path')
 
-    def refresh(self):
-        board_list = get_serial_boards()
-        board_dict = {board['serial_number']: board for board in board_list}
+        process = subprocess.Popen(
+            [executable, 'board', 'list', '--watch', '--format=json'],
+            stdout=subprocess.PIPE, universal_newlines=True)
 
-        old_keys = set(self.braccios.keys())
-        new_keys = set(board_dict.keys())
+        for item in json_iter(process.stdout):
+            if item['type'] == 'add':
+                self._on_connect(item)
+            elif item['type'] == 'remove':
+                self._on_disconnect(item)
 
-        removed = old_keys - new_keys
-        for key in removed:
-            braccio = self.braccios.pop(key)
-            braccio.disconnect()
+    def _on_connect(self, board):
+        name = board['boards'][0]['name']
+        serial_no = board['serial_number']
+        address = board['address']
 
-        added = new_keys - old_keys
-        for key in added:
-            board = board_dict[key]
-            self.braccios[key] = Braccio(board['boards'][0]['name'],
-                                         board['serial_number'], board['address'])
-            self.braccios[key].connect()
+        self.braccios[serial_no] = Braccio(name, serial_no, address)
+        self.braccios[serial_no].connect()
+
+    def _on_disconnect(self, board):
+        address = board['address']
+
+        for braccio in self.braccios.values():
+            if braccio.serial_path == address:
+                braccio.disconnect()
+                return
 
     def get_by_serial(self, serial_number: str) -> Braccio:
         return self.braccios.get(serial_number)
