@@ -1,7 +1,10 @@
 import time
 from enum import Enum
+import logging
 
 from serial import Serial, to_bytes, SerialException
+
+logger = logging.getLogger(__name__)
 
 # message markers
 START_MARKER = b'<'  # 0x3C
@@ -73,11 +76,15 @@ class Arduino:
                 if data == to_bytes([HELLO_ID, 0xFF]):
                     self.status = ConnectionStatus.CONNECTED
                 else:
+                    logger.error(
+                        'Arduino at port %s sent malformed "hello" message', self.serial_path)
                     self.status = ConnectionStatus.ERR_NO_HANDSHAKE
                 return
 
             elapsed_time = time.time() - start_time
             if elapsed_time > MAX_CONNECTION_WAIT_TIME:
+                logger.error('Arduino at port %s took more than %s seconds to send "hello" message',
+                             self.serial_path, MAX_CONNECTION_WAIT_TIME)
                 self.status = ConnectionStatus.ERR_NO_HANDSHAKE
                 return
 
@@ -89,6 +96,7 @@ class Arduino:
         try:
             self.serial = Serial(self.serial_path, 9600, timeout=1)
         except SerialException:
+            logger.exception('Could not open serial port %s', self.serial_path)
             self.status = ConnectionStatus.ERR_NO_SERIAL
             return
 
