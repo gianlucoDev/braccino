@@ -5,6 +5,14 @@ from routines.models import Routine
 from .arduino import Arduino
 
 
+# django -> arduino
+SETPOS_ID = 0x01
+GETPOS_ID = 0x02
+
+# django <- arduino
+GETPOS_REPLY_ID = 0x02
+
+
 class Braccio(Arduino):
 
     def __init__(self, name, serial_number, serial_path):
@@ -13,10 +21,10 @@ class Braccio(Arduino):
         super().__init__(name, serial_number, serial_path)
 
     def _set_target_position(self, m1, m2, m3, m4, m5, m6):
-        self._write_packet([0x01, m1, m2, m3, m4, m5, m6])
+        self._write_packet([SETPOS_ID, m1, m2, m3, m4, m5, m6])
 
     def _get_current_position(self):
-        self._write_packet([0x02])
+        self._write_packet([GETPOS_ID])
         data = self._read_packet()
 
         # ignore fist byte because it's packet ID
@@ -33,7 +41,7 @@ class Braccio(Arduino):
         for step in self.routine.steps.all():
             pos = (step.m1, step.m2, step.m3, step.m4, step.m5, step.m6)
 
-            self.set_target_position(*pos)
+            self._set_target_position(*pos)
             self._wait_for_position(pos)
             time.sleep(step.delay / 1000)
 

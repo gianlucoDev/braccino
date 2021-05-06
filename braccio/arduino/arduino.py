@@ -10,13 +10,8 @@ logger = logging.getLogger(__name__)
 START_MARKER = b'<'  # 0x3C
 END_MARKER = b'>'  # 0x3E
 
-# django -> arduino
-SETPOS_ID = 0x01
-GETPOS_ID = 0x02
-
 # django <- arduino
 HELLO_ID = 0x00
-GETPOS_REPLY_ID = 0x02
 
 # how many seconds should the Django app wait for the
 # Arduino to be ready before showing an error
@@ -105,14 +100,3 @@ class Arduino:
     def disconnect(self):
         if self.serial is not None and self.serial.is_open:
             self.serial.close()
-
-    def set_target_position(self, m1, m2, m3, m4, m5, m6):
-        self._write_packet([SETPOS_ID, m1, m2, m3, m4, m5, m6])
-
-    def get_current_position(self):
-        self._write_packet([GETPOS_ID])
-        data = self._read_packet()
-
-        # ignore fist byte because it's packet ID
-        # return bytes 1-6 as m1, m2, m3, m4, m5, m6
-        return tuple(data[1:7])
