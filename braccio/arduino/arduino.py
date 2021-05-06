@@ -95,7 +95,7 @@ class Arduino:
         self._wait_ready()
 
     def disconnect(self):
-        if self.serial.is_open:
+        if self.serial is not None and self.serial.is_open:
             self.serial.close()
 
     def set_target_position(self, m1, m2, m3, m4, m5, m6):
