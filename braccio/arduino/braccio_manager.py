@@ -37,6 +37,8 @@ class BraccioManager(metaclass=Singleton):
         address = board['address']
 
         self.braccios[serial_no] = Braccio(name, serial_no, address)
+        # HACK: adding a small delay here fixes a PermissionError when opening the serial connection
+        time.sleep(0.25)
         self.braccios[serial_no].connect()
 
     def _on_disconnect(self, board):
