@@ -100,3 +100,4 @@ class Arduino:
     def disconnect(self):
         if self.serial is not None and self.serial.is_open:
             self.serial.close()
+            self.status = ConnectionStatus.NOT_CONNECTED

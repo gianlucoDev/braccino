@@ -1,6 +1,7 @@
 import shutil
 import subprocess
 import threading
+import time
 
 from braccio.util.singleton import Singleton
 from braccio.util.json import json_iter
@@ -41,8 +42,9 @@ class BraccioManager(metaclass=Singleton):
     def _on_disconnect(self, board):
         address = board['address']
 
-        for braccio in self.braccios.values():
+        for key, braccio in self.braccios.items():
             if braccio.serial_path == address:
+                del self.braccios[key]
                 braccio.disconnect()
                 return
 
