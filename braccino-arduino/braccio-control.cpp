@@ -14,7 +14,18 @@ Servo gripper;
 // current positions
 braccioPosition current;
 
+void softwarePWM(int high_time, int low_time) {
+  digitalWrite(SOFT_START_CONTROL_PIN, HIGH);
+  delayMicroseconds(high_time);
+  digitalWrite(SOFT_START_CONTROL_PIN, LOW);
+  delayMicroseconds(low_time);
+}
+
 void braccioBegin() {
+  // connect pins for soft start
+  pinMode(SOFT_START_CONTROL_PIN, OUTPUT);
+  digitalWrite(SOFT_START_CONTROL_PIN, LOW);
+
   // initialization pin Servo motors
   base.attach(11);
   shoulder.attach(10);
@@ -30,6 +41,16 @@ void braccioBegin() {
   wrist_ver.write(current.wrist_ver);
   wrist_rot.write(current.wrist_rot);
   gripper.write(current.gripper);
+
+  // do soft start
+  long int tmp = millis();
+  while (millis() - tmp < LOW_LIMIT_TIMEOUT)
+    softwarePWM(80, 450);  // the sum should be 530usec
+
+  while (millis() - tmp < HIGH_LIMIT_TIMEOUT)
+    softwarePWM(75, 430);  // the sum should be 505usec
+
+  digitalWrite(SOFT_START_CONTROL_PIN, HIGH);
 }
 
 unsigned long lastStep = 0;

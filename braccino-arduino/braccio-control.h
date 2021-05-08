@@ -1,3 +1,13 @@
+// The software PWM is connected to PIN 12.
+#define SOFT_START_CONTROL_PIN 12
+
+// Low and High Limit Timeout for the Software PWM
+#define LOW_LIMIT_TIMEOUT 2000
+#define HIGH_LIMIT_TIMEOUT 6000
+
+// The default value for the soft start
+#define SOFT_START_DEFAULT_LEVEL 0
+
 /**
  * Represent the position of a Braccio
  */
