@@ -1,5 +1,6 @@
-#include <Braccio.h>
 #include <Servo.h>
+
+#include "./braccio-control.h"
 
 // serial variables
 const byte startMarker = 0x3C;
@@ -19,29 +20,23 @@ const byte GETPOS_ID = 0x02;
 const byte HELLO_ID = 0x00;
 const byte GETPOS_REPLY_ID = 0x02;
 
-// braccio variables
-Servo base;
-Servo shoulder;
-Servo elbow;
-Servo wrist_rot;
-Servo wrist_ver;
-Servo gripper;
-
-int M1 = 90, M2 = 45, M3 = 180, M4 = 180, M5 = 90, M6 = 10;
+// braccio target position
+braccioPosition targetPosition;
 
 void setup() {
   // Initialize serial
   Serial.begin(9600);
 
-  // Initialize braccio
-  // All the servo motors will be positioned in the "safety" position:
-  //   Base (M1):90 degrees
-  //   Shoulder (M2): 45 degrees
-  //   Elbow (M3): 180 degrees
-  //   Wrist vertical (M4): 180 degrees
-  //   Wrist rotation (M5): 90 degrees
-  //   gripper (M6): 10 degrees
-  Braccio.begin();
+  // set initial target position
+  targetPosition.base = 90;
+  targetPosition.shoulder = 45;
+  targetPosition.elbow = 180;
+  targetPosition.wrist_rot = 180;
+  targetPosition.wrist_ver = 90;
+  targetPosition.gripper = 10;
+
+  // TODO: re-implement soft-start
+  braccioBegin();
 
   // Signal that the arduino is ready
   sendReady();
@@ -56,16 +51,8 @@ void loop() {
   receiveData();
   handlePacket();
 
-  // Step Delay = a milliseconds delay between the movement of each servo;
-  //   Allowed values from 10 to 30 msec.
-  // M1 = base degrees. Allowed values from 0 to 180 degrees.
-  // M2 = shoulder degrees. Allowed values from 15 to 165 degrees.
-  // M3 = elbow degrees. Allowed values from 0 to 180 degrees.
-  // M4 = wrist vertical degrees. Allowed values from 0 to 180 degrees.
-  // M5 = wrist rotation degrees. Allowed values from 0 to 180 degrees.
-  // M6 = gripper degrees. Allowed values from 10 to 73 degrees; 10: the toungue
-  //   is open, 73: the gripper is closed.
-  Braccio.ServoMovement(30, M1, M2, M3, M4, M5, M6);
+  // move the Braccio towards desired position
+  braccioServoStep(30, targetPosition);
 }
 
 void receiveData() {
@@ -120,17 +107,28 @@ void handlePacket() {
 
 void handleSetPosition() {
   // skip first byte because it's the packet type ID
-  M1 = receivedBytes[1];
-  M2 = receivedBytes[2];
-  M3 = receivedBytes[3];
-  M4 = receivedBytes[4];
-  M5 = receivedBytes[5];
-  M6 = receivedBytes[6];
+  targetPosition.base = receivedBytes[1];
+  targetPosition.shoulder = receivedBytes[2];
+  targetPosition.elbow = receivedBytes[3];
+  targetPosition.wrist_rot = receivedBytes[4];
+  targetPosition.wrist_ver = receivedBytes[5];
+  targetPosition.gripper = receivedBytes[6];
 }
 
 void handleGetPosition() {
-  byte pos_data[] = {startMarker, GETPOS_REPLY_ID, M1, M2, M3, M4, M5,
-                     M6,          endMarker};
+  byte pos_data[] = {
+
+      startMarker,
+      GETPOS_REPLY_ID,
+      (byte)targetPosition.base,
+      (byte)targetPosition.shoulder,
+      (byte)targetPosition.elbow,
+      (byte)targetPosition.wrist_rot,
+      (byte)targetPosition.wrist_ver,
+      (byte)targetPosition.gripper,
+      endMarker
+
+  };
 
   Serial.write(pos_data, 9);
 }
