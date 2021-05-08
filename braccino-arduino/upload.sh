@@ -27,7 +27,6 @@ prompt_confirm "do you want to upload?" || exit 0
 
 printf "\n%s\n\n" "installing libraries"
 arduino-cli core install $platform
-arduino-cli lib install Braccio@2.0.4
 arduino-cli lib install Servo@1.1.7
 
 printf "\n%s\n\n" "compiling and uploading"
