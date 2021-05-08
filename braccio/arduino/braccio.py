@@ -56,3 +56,6 @@ class Braccio(Arduino):
         self.current_step = 0
         thread = threading.Thread(target=self._run)
         thread.start()
+
+    def is_busy(self):
+        return self.routine is not None

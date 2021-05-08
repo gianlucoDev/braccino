@@ -6,6 +6,7 @@ from rest_framework.decorators import action
 from routines.models import Routine
 from .arduino import BraccioManager, get_braccio_or_404
 from .serializers import BraccioSerializer
+from .exceptions import BraccioStatusNotOkException, BraccioBusyException
 
 
 class BraccioViewSet(viewsets.ViewSet):
@@ -25,6 +26,11 @@ class BraccioViewSet(viewsets.ViewSet):
         braccio = get_braccio_or_404(BraccioManager(), pk)
         routine = get_object_or_404(Routine, pk=routine_pk)
 
-        braccio.run(routine)
+        if not braccio.status.ok:
+            raise BraccioStatusNotOkException()
 
+        if braccio.is_busy():
+            raise BraccioBusyException()
+
+        braccio.run(routine)
         return Response({"ok": True})
