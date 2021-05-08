@@ -110,8 +110,8 @@ void handleSetPosition() {
   targetPosition.base = receivedBytes[1];
   targetPosition.shoulder = receivedBytes[2];
   targetPosition.elbow = receivedBytes[3];
-  targetPosition.wrist_rot = receivedBytes[4];
-  targetPosition.wrist_ver = receivedBytes[5];
+  targetPosition.wrist_ver = receivedBytes[4];
+  targetPosition.wrist_rot = receivedBytes[5];
   targetPosition.gripper = receivedBytes[6];
 }
 
@@ -125,8 +125,8 @@ void handleGetPosition() {
       (byte)currentPosition.base,
       (byte)currentPosition.shoulder,
       (byte)currentPosition.elbow,
-      (byte)currentPosition.wrist_rot,
       (byte)currentPosition.wrist_ver,
+      (byte)currentPosition.wrist_rot,
       (byte)currentPosition.gripper,
       endMarker
 

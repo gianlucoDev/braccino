@@ -118,27 +118,27 @@ void braccioServoStep(int stepDelay, braccioPosition t) {
     }
   }
 
-  if (t.wrist_ver != current.wrist_rot) {
-    wrist_rot.write(current.wrist_rot);
-    // One step ahead
-    if (t.wrist_ver > current.wrist_rot) {
-      current.wrist_rot++;
-    }
-    // One step beyond
-    if (t.wrist_ver < current.wrist_rot) {
-      current.wrist_rot--;
-    }
-  }
-
-  if (t.wrist_rot != current.wrist_ver) {
+  if (t.wrist_ver != current.wrist_ver) {
     wrist_ver.write(current.wrist_ver);
     // One step ahead
-    if (t.wrist_rot > current.wrist_ver) {
+    if (t.wrist_ver > current.wrist_ver) {
       current.wrist_ver++;
     }
     // One step beyond
-    if (t.wrist_rot < current.wrist_ver) {
+    if (t.wrist_ver < current.wrist_ver) {
       current.wrist_ver--;
+    }
+  }
+
+  if (t.wrist_rot != current.wrist_rot) {
+    wrist_rot.write(current.wrist_rot);
+    // One step ahead
+    if (t.wrist_rot > current.wrist_rot) {
+      current.wrist_rot++;
+    }
+    // One step beyond
+    if (t.wrist_rot < current.wrist_rot) {
+      current.wrist_rot--;
     }
   }
 

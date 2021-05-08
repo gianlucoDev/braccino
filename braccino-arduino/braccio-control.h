@@ -18,10 +18,10 @@ struct braccioPosition {
   int shoulder = 45;
   // Elbow degrees. Allowed values from 0 to 180 degrees.
   int elbow = 180;
-  // Wrist vertical degrees. Allowed values from 0 to 180 degrees.
-  int wrist_rot = 180;
   // Wrist rotation degrees. Allowed values from 0 to 180 degrees.
   int wrist_ver = 90;
+  // Wrist vertical degrees. Allowed values from 0 to 180 degrees.
+  int wrist_rot = 180;
   // Gripper degrees. Allowed values from 10 to 73 degrees; 10: the gripper is
   //   open, 73: the gripper is closed.
   int gripper = 10;
