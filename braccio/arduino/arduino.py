@@ -1,4 +1,3 @@
-import time
 from enum import Enum
 import logging
 
@@ -48,7 +47,9 @@ class Arduino:
         packet = START_MARKER + data + END_MARKER
         self.serial.write(packet)
 
-    def _read_packet(self):
+    def _read_packet(self, timeout=None):
+        self.serial.timeout = timeout
+
         packet = self.serial.read_until(expected=END_MARKER)
         if not packet:
             return None
@@ -62,26 +63,19 @@ class Arduino:
         return data
 
     def _wait_ready(self):
-        start_time = time.time()
+        data = self._read_packet(timeout=MAX_CONNECTION_WAIT_TIME)
 
-        while True:
-            data = self._read_packet()
-
-            if data is not None:
-                if data == to_bytes([HELLO_ID, 0xFF]):
-                    self.status = ConnectionStatus.CONNECTED
-                else:
-                    logger.error(
-                        'Arduino at port %s sent malformed "hello" message', self.serial_path)
-                    self.status = ConnectionStatus.ERR_NO_HANDSHAKE
-                return
-
-            elapsed_time = time.time() - start_time
-            if elapsed_time > MAX_CONNECTION_WAIT_TIME:
-                logger.error('Arduino at port %s took more than %s seconds to send "hello" message',
-                             self.serial_path, MAX_CONNECTION_WAIT_TIME)
+        if data is None:
+            logger.error('Arduino at port %s took more than %s seconds to send "hello" message',
+                         self.serial_path, MAX_CONNECTION_WAIT_TIME)
+            self.status = ConnectionStatus.ERR_NO_HANDSHAKE
+        else:
+            if data == to_bytes([HELLO_ID, 0xFF]):
+                self.status = ConnectionStatus.CONNECTED
+            else:
+                logger.error(
+                    'Arduino at port %s sent malformed "hello" message', self.serial_path)
                 self.status = ConnectionStatus.ERR_NO_HANDSHAKE
-                return
 
     def connect(self):
         if self.status != ConnectionStatus.NOT_CONNECTED:
@@ -89,7 +83,7 @@ class Arduino:
 
         self.status = ConnectionStatus.CONNECTING
         try:
-            self.serial = Serial(self.serial_path, 9600, timeout=1)
+            self.serial = Serial(self.serial_path, 9600)
         except SerialException:
             logger.exception('Could not open serial port %s', self.serial_path)
             self.status = ConnectionStatus.ERR_NO_SERIAL
