@@ -116,19 +116,21 @@ void handleSetPosition() {
 }
 
 void handleGetPosition() {
-  byte pos_data[] = {
+  braccioPosition currentPosition = braccioCurrentPostion();
+
+  byte packetData[] = {
 
       startMarker,
       GETPOS_REPLY_ID,
-      (byte)targetPosition.base,
-      (byte)targetPosition.shoulder,
-      (byte)targetPosition.elbow,
-      (byte)targetPosition.wrist_rot,
-      (byte)targetPosition.wrist_ver,
-      (byte)targetPosition.gripper,
+      (byte)currentPosition.base,
+      (byte)currentPosition.shoulder,
+      (byte)currentPosition.elbow,
+      (byte)currentPosition.wrist_rot,
+      (byte)currentPosition.wrist_ver,
+      (byte)currentPosition.gripper,
       endMarker
 
   };
 
-  Serial.write(pos_data, 9);
+  Serial.write(packetData, 9);
 }
