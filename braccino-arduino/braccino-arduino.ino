@@ -43,7 +43,7 @@ void setup() {
 }
 
 void sendReady() {
-  byte ping_data[] = {startMarker, HELLO_ID, 0xFF, endMarker};
+  byte ping_data[] = {startMarker, HELLO_ID, 0xAA, endMarker};
   Serial.write(ping_data, 3);
 }
 

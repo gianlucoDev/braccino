@@ -70,7 +70,7 @@ class Arduino:
                          self.serial_path, MAX_CONNECTION_WAIT_TIME)
             self.status = ConnectionStatus.ERR_NO_HANDSHAKE
         else:
-            if data == to_bytes([HELLO_ID, 0xFF]):
+            if data == to_bytes([HELLO_ID, 0xAA]):
                 self.status = ConnectionStatus.CONNECTED
             else:
                 logger.error(
