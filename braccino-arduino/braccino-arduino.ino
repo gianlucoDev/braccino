@@ -3,8 +3,8 @@
 #include "./braccio-control.h"
 
 // serial variables
-const byte startMarker = 0x3C;
-const byte endMarker = 0x3E;
+const byte startMarker = 0xFF;
+const byte endMarker = 0xF0;
 
 const byte numBytes = 32;
 byte receivedBytes[numBytes];

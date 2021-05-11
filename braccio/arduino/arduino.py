@@ -6,8 +6,8 @@ from serial import Serial, to_bytes, SerialException
 logger = logging.getLogger(__name__)
 
 # message markers
-START_MARKER = b'<'  # 0x3C
-END_MARKER = b'>'  # 0x3E
+START_MARKER = b'\xFF'
+END_MARKER = b'\xF0'
 
 # django <- arduino
 HELLO_ID = 0x00
