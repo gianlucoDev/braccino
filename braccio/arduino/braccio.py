@@ -25,7 +25,7 @@ class Braccio(Arduino):
 
     def _get_current_position(self):
         self._write_packet([GETPOS_ID])
-        data = self._read_packet()
+        data = self._read_packet(timeout=1)
 
         # ignore fist byte because it's packet ID
         # return bytes 1-6 as m1, m2, m3, m4, m5, m6
@@ -35,7 +35,7 @@ class Braccio(Arduino):
         current = self._get_current_position()
         while current != expected:
             current = self._get_current_position()
-            time.sleep(500 / 1000)
+            time.sleep(0.1)
 
     def _run(self):
         for step in self.routine.steps.all():
