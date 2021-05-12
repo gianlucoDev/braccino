@@ -27,14 +27,6 @@ void setup() {
   // Initialize serial
   Serial.begin(9600);
 
-  // set initial target position
-  targetPosition.base = 90;
-  targetPosition.shoulder = 45;
-  targetPosition.elbow = 180;
-  targetPosition.wrist_rot = 180;
-  targetPosition.wrist_ver = 90;
-  targetPosition.gripper = 10;
-
   // TODO: re-implement soft-start
   braccioBegin();
 
