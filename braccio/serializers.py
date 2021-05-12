@@ -14,4 +14,4 @@ class BraccioSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=200)
     serial_number = serializers.CharField(max_length=200)
     serial_path = serializers.CharField(max_length=200)
-    status = ConnectionStatusSerializer()
+    connection_status = ConnectionStatusSerializer()

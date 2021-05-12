@@ -26,7 +26,7 @@ class BraccioViewSet(viewsets.ViewSet):
         braccio = get_braccio_or_404(BraccioManager(), pk)
         routine = get_object_or_404(Routine, pk=routine_pk)
 
-        if not braccio.status.ok:
+        if not braccio.connection_status.ok:
             raise BraccioStatusNotOkException()
 
         if braccio.is_busy():

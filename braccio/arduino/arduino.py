@@ -40,7 +40,7 @@ class Arduino:
 
         self.serial_path = serial_path
         self.serial = None
-        self.status = ConnectionStatus.NOT_CONNECTED
+        self.connection_status = ConnectionStatus.NOT_CONNECTED
 
     def _write_packet(self, data):
         data = to_bytes(data)
@@ -68,25 +68,25 @@ class Arduino:
         if data is None:
             logger.error('Arduino at port %s took more than %s seconds to send "hello" message',
                          self.serial_path, MAX_CONNECTION_WAIT_TIME)
-            self.status = ConnectionStatus.ERR_NO_HANDSHAKE
+            self.connection_status = ConnectionStatus.ERR_NO_HANDSHAKE
         else:
             if data == to_bytes([HELLO_ID, 0xAA]):
-                self.status = ConnectionStatus.CONNECTED
+                self.connection_status = ConnectionStatus.CONNECTED
             else:
                 logger.error(
                     'Arduino at port %s sent malformed "hello" message', self.serial_path)
-                self.status = ConnectionStatus.ERR_NO_HANDSHAKE
+                self.connection_status = ConnectionStatus.ERR_NO_HANDSHAKE
 
     def connect(self):
-        if self.status != ConnectionStatus.NOT_CONNECTED:
+        if self.connection_status != ConnectionStatus.NOT_CONNECTED:
             raise ValueError("Serial port already open")
 
-        self.status = ConnectionStatus.CONNECTING
+        self.connection_status = ConnectionStatus.CONNECTING
         try:
             self.serial = Serial(self.serial_path, 9600)
         except SerialException:
             logger.exception('Could not open serial port %s', self.serial_path)
-            self.status = ConnectionStatus.ERR_NO_SERIAL
+            self.connection_status = ConnectionStatus.ERR_NO_SERIAL
             return
 
         self._wait_ready()
@@ -94,4 +94,4 @@ class Arduino:
     def disconnect(self):
         if self.serial is not None and self.serial.is_open:
             self.serial.close()
-            self.status = ConnectionStatus.NOT_CONNECTED
+            self.connection_status = ConnectionStatus.NOT_CONNECTED
