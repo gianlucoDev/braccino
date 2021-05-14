@@ -1,11 +1,39 @@
 from rest_framework import serializers
-from .models import Routine, Step
+from .models import Position, Routine, Step
+
+
+class PositionSerializer(serializers.Serializer):
+    # pylint: disable=abstract-method
+
+    def to_representation(self, instance: Position):
+        json = {
+            "base": instance.base,
+            "shoulder": instance.shoulder,
+            "elbow": instance.elbow,
+            "wrist_ver": instance.wrist_ver,
+            "wrist_rot": instance.wrist_rot,
+            "gripper": instance.gripper,
+        }
+        return json
+
+    def to_internal_value(self, data) -> Position:
+        position = Position(
+            base=data["base"],
+            shoulder=data["shoulder"],
+            elbow=data["elbow"],
+            wrist_ver=data["wrist_ver"],
+            wrist_rot=data["wrist_rot"],
+            gripper=data["gripper"],
+        )
+        return position
 
 
 class StepSerializer(serializers.ModelSerializer):
+    position = PositionSerializer()
+
     class Meta:
         model = Step
-        fields = ['delay', 'speed', 'm1', 'm2', 'm3', 'm4', 'm5', 'm6']
+        fields = ['delay', 'speed', 'position']
 
 
 class RoutineSerializer(serializers.ModelSerializer):
