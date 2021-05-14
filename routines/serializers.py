@@ -5,7 +5,7 @@ from .models import Routine, Step
 class StepSerializer(serializers.ModelSerializer):
     class Meta:
         model = Step
-        fields = ['delay', 'm1', 'm2', 'm3', 'm4', 'm5', 'm6']
+        fields = ['delay', 'speed', 'm1', 'm2', 'm3', 'm4', 'm5', 'm6']
 
 
 class RoutineSerializer(serializers.ModelSerializer):

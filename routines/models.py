@@ -11,6 +11,7 @@ class Step(models.Model):
     order = models.IntegerField()
 
     delay = models.IntegerField()
+    speed = models.IntegerField()
     m1 = models.IntegerField()
     m2 = models.IntegerField()
     m3 = models.IntegerField()
