@@ -7,6 +7,7 @@ from .arduino import Arduino
 # django -> arduino
 SETPOS_ID = 0x01
 GETPOS_ID = 0x02
+SETSPEED_ID = 0x03
 
 # django <- arduino
 GETPOS_REPLY_ID = 0x02
@@ -37,7 +38,7 @@ class Braccio(Arduino):
     def set_target_position(self, m1, m2, m3, m4, m5, m6):
         self._write_packet([SETPOS_ID, m1, m2, m3, m4, m5, m6])
 
-    def _get_current_position(self):
+    def get_current_position(self):
         self._write_packet([GETPOS_ID])
         data = self._read_packet(timeout=1)
 
@@ -46,10 +47,13 @@ class Braccio(Arduino):
         return tuple(data[1:7])
 
     def wait_for_position(self, expected):
-        current = self._get_current_position()
+        current = self.get_current_position()
         while current != expected:
-            current = self._get_current_position()
+            current = self.get_current_position()
             time.sleep(0.1)
+
+    def set_speed(self, speed):
+        self._write_packet([SETSPEED_ID, speed])
 
     def run_action(self, action):
         if self.is_busy():

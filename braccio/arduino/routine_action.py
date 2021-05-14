@@ -17,8 +17,14 @@ class BraccioRoutineAction(BraccioAction):
         for step in self.routine.steps.all():
             pos = (step.m1, step.m2, step.m3, step.m4, step.m5, step.m6)
 
+            # set target position and speed
             self.braccio.set_target_position(*pos)
+            self.braccio.set_speed(step.speed)
+
+            # wait for the braccio to reach position
             self.braccio.wait_for_position(pos)
+
+            # wait specified delay
             time.sleep(step.delay / 1000)
 
     @property
