@@ -1,7 +1,9 @@
-from routines.models import Position
+from dataclasses import dataclass
+import threading
 import time
-from abc import ABC, abstractmethod
+from typing import Iterator
 
+from routines.models import Position
 from .arduino import Arduino
 
 
@@ -14,26 +16,18 @@ SETSPEED_ID = 0x03
 GETPOS_REPLY_ID = 0x02
 
 
-class BraccioController(ABC):
-
-    @property
-    @abstractmethod
-    def name(self):
-        raise NotImplementedError
-
-    @abstractmethod
-    def start(self):
-        raise NotImplementedError
-
-    @abstractmethod
-    def is_running(self) -> bool:
-        raise NotImplementedError
+@dataclass
+class BraccioStep:
+    position: Position
+    speed: int
+    delay: int
+    wait_for_position: bool
 
 
 class Braccio(Arduino):
 
     def __init__(self, name, serial_number, serial_path):
-        self.current_action = None
+        self.thread = None
         super().__init__(name, serial_number, serial_path)
 
     def set_target_position(self, position: Position):
@@ -69,12 +63,23 @@ class Braccio(Arduino):
     def set_speed(self, speed):
         self._write_packet([SETSPEED_ID, speed])
 
-    def run_action(self, action):
-        if self.is_busy():
-            raise ValueError('Braccio busy')
+    def _run_thread(self, steps: Iterator[BraccioStep]):
+        for step in steps:
+            # set target position and speed
+            self.set_target_position(step.position)
+            self.set_speed(step.speed)
 
-        self.current_action = action
-        self.current_action.start()
+            # wait for the braccio to reach position
+            if step.wait_for_position:
+                self.wait_for_position(step.position)
+
+            # wait specified delay
+            time.sleep(step.delay / 1000)
+
+    def run(self, steps: Iterator[BraccioStep]):
+        self.thread = threading.Thread(
+            target=self._run_thread, args=(steps,))
+        self.thread.start()
 
     def is_busy(self):
-        return self.current_action is not None and self.current_action.is_running()
+        return self.thread is not None and self.thread.is_alive()

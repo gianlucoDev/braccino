@@ -1,11 +1,10 @@
-
 from django.shortcuts import get_object_or_404
 from rest_framework import viewsets
 from rest_framework.response import Response
 from rest_framework.decorators import action
 
 from routines.models import Routine
-from .arduino import BraccioManager, BraccioRoutineController, get_braccio_or_404
+from .arduino import BraccioManager, get_braccio_or_404, routine_step_iterator
 from .serializers import BraccioSerializer
 from .exceptions import BraccioStatusNotOkException, BraccioBusyException
 
@@ -33,6 +32,5 @@ class BraccioViewSet(viewsets.ViewSet):
         if braccio.is_busy():
             raise BraccioBusyException()
 
-        routine_action = BraccioRoutineController(braccio, routine)
-        braccio.run_action(routine_action)
+        braccio.run(routine_step_iterator(routine))
         return Response({"ok": True})

@@ -1,26 +1,27 @@
-from routines.serializers import PositionSerializer
 from channels.generic.websocket import JsonWebsocketConsumer
 
-from .arduino import BraccioController, BraccioManager
+from routines.serializers import PositionSerializer
+from .arduino import BraccioManager, ContinuousStepIterator
 
 
-class BraccioConsumer(JsonWebsocketConsumer, BraccioController):
+class BraccioConsumer(JsonWebsocketConsumer):
 
     def connect(self):
         #pylint: disable=attribute-defined-outside-init
 
         serial_number = self.scope['url_route']['kwargs']['serial_number']
-        self.braccio = BraccioManager().get_by_serial(serial_number)
-        self.running = True
+        braccio = BraccioManager().get_by_serial(serial_number)
 
-        if self.braccio is None or self.braccio.is_busy():
+        if braccio is None or braccio.is_busy():
             self.close()
-        else:
-            self.braccio.run_action(self)
-            self.accept()
+            return
+
+        self.step_iterator = ContinuousStepIterator()
+        braccio.run(self.step_iterator)
+        self.accept()
 
     def disconnect(self, code):
-        self.running = False
+        self.step_iterator.stop()
 
     def receive_json(self, content):
         #pylint: disable=arguments-differ
@@ -28,14 +29,4 @@ class BraccioConsumer(JsonWebsocketConsumer, BraccioController):
         serializer = PositionSerializer(data=content)
         if serializer.is_valid():
             position = serializer.validated_data
-            self.braccio.set_target_position(position)
-
-    def is_running(self) -> bool:
-        return self.running
-
-    @property
-    def name(self):
-        return "Remote control"
-
-    def start(self):
-        pass
+            self.step_iterator.position(position)

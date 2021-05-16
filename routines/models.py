@@ -8,12 +8,12 @@ class Routine(models.Model):
 
 @dataclass
 class Position:
-    base: int
-    shoulder: int
-    elbow: int
-    wrist_ver: int
-    wrist_rot: int
-    gripper: int
+    base: int = 90
+    shoulder: int = 45
+    elbow: int = 180
+    wrist_ver: int = 180
+    wrist_rot: int = 90
+    gripper: int = 10
 
 
 class Step(models.Model):
