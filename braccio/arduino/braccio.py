@@ -1,12 +1,9 @@
-from braccio.arduino.step_iterators import StepIterator
-from dataclasses import dataclass
 import threading
 import time
-from typing import Iterator
 
 from routines.models import Position
 from .arduino import Arduino
-
+from .step_iterators import StepIterator
 
 # django -> arduino
 SETPOS_ID = 0x01
@@ -15,14 +12,6 @@ SETSPEED_ID = 0x03
 
 # django <- arduino
 GETPOS_REPLY_ID = 0x02
-
-
-@dataclass
-class BraccioStep:
-    position: Position
-    speed: int
-    delay: int
-    wait_for_position: bool
 
 
 class Braccio(Arduino):

@@ -1,10 +1,18 @@
+from dataclasses import dataclass
 from abc import ABC, abstractmethod
 from typing import Iterable
 from routines.models import Routine, Position
-from braccio.arduino.braccio import BraccioStep
 
 
-class StepIterator(ABC, Iterable[BraccioStep]):
+@dataclass
+class Step:
+    position: Position
+    speed: int
+    delay: int
+    wait_for_position: bool
+
+
+class StepIterator(ABC, Iterable[Step]):
 
     @property
     @abstractmethod
@@ -22,11 +30,11 @@ class RoutineStepIterator(StepIterator):
         return self.routine.name
 
     def __iter__(self):
-        for step in self.routine.steps.all():
-            yield BraccioStep(
-                position=step.position,
-                speed=step.speed,
-                delay=step.delay,
+        for routine_step in self.routine.steps.all():
+            yield Step(
+                position=routine_step.position,
+                speed=routine_step.speed,
+                delay=routine_step.delay,
                 wait_for_position=True,
             )
 
@@ -57,7 +65,7 @@ class ContinuousStepIterator(StepIterator):
         if self._stop:
             raise StopIteration
 
-        return BraccioStep(
+        return Step(
             position=self._position,
             speed=self._speed,
             delay=100,
