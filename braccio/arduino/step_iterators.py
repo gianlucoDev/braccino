@@ -1,18 +1,39 @@
+from abc import ABC, abstractmethod
+from typing import Iterable
 from routines.models import Routine, Position
 from braccio.arduino.braccio import BraccioStep
 
 
-def routine_step_iterator(routine: Routine):
-    for step in routine.steps.all():
-        yield BraccioStep(
-            position=step.position,
-            speed=step.speed,
-            delay=step.delay,
-            wait_for_position=True,
-        )
+class StepIterator(ABC, Iterable[BraccioStep]):
+
+    @property
+    @abstractmethod
+    def name(self) -> str:
+        pass
 
 
-class ContinuousStepIterator:
+class RoutineStepIterator(StepIterator):
+
+    def __init__(self, routine: Routine):
+        self.routine = routine
+
+    @property
+    def name(self):
+        return self.routine.name
+
+    def __iter__(self):
+        for step in self.routine.steps.all():
+            yield BraccioStep(
+                position=step.position,
+                speed=step.speed,
+                delay=step.delay,
+                wait_for_position=True,
+            )
+
+
+class ContinuousStepIterator(StepIterator):
+
+    name = 'remote_control'
 
     def __init__(self):
         self._position = Position()

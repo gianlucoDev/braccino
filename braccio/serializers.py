@@ -8,6 +8,12 @@ class ConnectionStatusSerializer(serializers.Serializer):
         return {"ok": instance.ok, "code": instance.name}
 
 
+class BraccioRunningSerializer(serializers.Serializer):
+    # pylint: disable=abstract-method
+
+    name = serializers.CharField(max_length=200)
+
+
 class BraccioSerializer(serializers.Serializer):
     # pylint: disable=abstract-method
 
@@ -15,4 +21,4 @@ class BraccioSerializer(serializers.Serializer):
     serial_number = serializers.CharField(max_length=200)
     serial_path = serializers.CharField(max_length=200)
     connection_status = ConnectionStatusSerializer()
-    is_busy = serializers.BooleanField()
+    running = BraccioRunningSerializer()

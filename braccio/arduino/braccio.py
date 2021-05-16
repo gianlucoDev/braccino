@@ -1,3 +1,4 @@
+from braccio.arduino.step_iterators import StepIterator
 from dataclasses import dataclass
 import threading
 import time
@@ -28,6 +29,7 @@ class Braccio(Arduino):
 
     def __init__(self, name, serial_number, serial_path):
         self.thread = None
+        self.running = None
         super().__init__(name, serial_number, serial_path)
 
     def set_target_position(self, position: Position):
@@ -63,7 +65,9 @@ class Braccio(Arduino):
     def set_speed(self, speed):
         self._write_packet([SETSPEED_ID, speed])
 
-    def _run_thread(self, steps: Iterator[BraccioStep]):
+    def _run_thread(self, steps: StepIterator):
+        self.running = steps
+
         for step in steps:
             # set target position and speed
             self.set_target_position(step.position)
@@ -76,10 +80,12 @@ class Braccio(Arduino):
             # wait specified delay
             time.sleep(step.delay / 1000)
 
-    def run(self, steps: Iterator[BraccioStep]):
+        self.running = None
+
+    def run(self, steps: StepIterator):
         self.thread = threading.Thread(
             target=self._run_thread, args=(steps,))
         self.thread.start()
 
     def is_busy(self):
-        return self.thread is not None and self.thread.is_alive()
+        return self.running is not None

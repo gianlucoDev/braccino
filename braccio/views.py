@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 
 from routines.models import Routine
-from .arduino import BraccioManager, get_braccio_or_404, routine_step_iterator
+from .arduino import BraccioManager, get_braccio_or_404, RoutineStepIterator
 from .serializers import BraccioSerializer
 from .exceptions import BraccioStatusNotOkException, BraccioBusyException
 
@@ -32,5 +32,5 @@ class BraccioViewSet(viewsets.ViewSet):
         if braccio.is_busy():
             raise BraccioBusyException()
 
-        braccio.run(routine_step_iterator(routine))
+        braccio.run(RoutineStepIterator(routine))
         return Response({"ok": True})
