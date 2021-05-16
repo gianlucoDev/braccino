@@ -1,6 +1,6 @@
 from channels.generic.websocket import JsonWebsocketConsumer
 
-from .arduino import BraccioManager, get_braccio_or_404
+from .arduino import BraccioManager
 
 
 class BraccioConsumer(JsonWebsocketConsumer):
@@ -9,10 +9,9 @@ class BraccioConsumer(JsonWebsocketConsumer):
         #pylint: disable=attribute-defined-outside-init
 
         serial_number = self.scope['url_route']['kwargs']['serial_number']
-        braccio = BraccioManager().get_by_serial(serial_number)
+        self.braccio = BraccioManager().get_by_serial(serial_number)
 
-        if braccio is not None:
-            self.braccio = get_braccio_or_404(BraccioManager(), serial_number)
+        if self.braccio is not None:
             self.accept()
         else:
             self.close(code=404)
