@@ -11,10 +11,10 @@ class BraccioConsumer(JsonWebsocketConsumer):
         serial_number = self.scope['url_route']['kwargs']['serial_number']
         self.braccio = BraccioManager().get_by_serial(serial_number)
 
-        if self.braccio is not None:
-            self.accept()
+        if self.braccio is None or self.braccio.is_busy():
+            self.close()
         else:
-            self.close(code=404)
+            self.accept()
 
     def receive_json(self, content):
         #pylint: disable=arguments-differ
