@@ -2,10 +2,10 @@ import threading
 import time
 
 from routines.models import Routine
-from .braccio import Braccio, BraccioAction
+from .braccio import Braccio, BraccioController
 
 
-class BraccioRoutineAction(BraccioAction):
+class BraccioRoutineController(BraccioController):
     def __init__(self, braccio: Braccio, routine: Routine):
         self._name = routine.name
         self.braccio = braccio

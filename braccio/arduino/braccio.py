@@ -14,7 +14,7 @@ SETSPEED_ID = 0x03
 GETPOS_REPLY_ID = 0x02
 
 
-class BraccioAction(ABC):
+class BraccioController(ABC):
 
     @property
     @abstractmethod
