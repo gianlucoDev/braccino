@@ -8,6 +8,7 @@ django = "~=3.2"
 djangorestframework = "~=3.12.4"
 django-cors-headers = "~=3.7.0"
 pyserial = "~=3.5"
+channels = "~=3.0.3"
 
 [dev-packages]
 autopep8 = "*"

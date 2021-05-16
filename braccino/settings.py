@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'corsheaders',
     'rest_framework',
+    'channels',
     'braccio',
     'routines',
 ]
@@ -129,3 +130,6 @@ CORS_ALLOW_ALL_ORIGINS = True
 
 # Do not append slashes to request URLs
 APPEND_SLASH=False
+
+# ASGI application
+ASGI_APPLICATION = "braccino.asgi.application"
