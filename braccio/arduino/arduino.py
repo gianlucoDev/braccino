@@ -50,17 +50,18 @@ class Arduino:
     def _read_packet(self, timeout=None):
         self.serial.timeout = timeout
 
-        packet = self.serial.read_until(expected=END_MARKER)
-        if not packet:
+        data = self.serial.read_until(expected=END_MARKER)
+        if not data:
             return None
 
-        # remove start marker, and anything before it
-        parts = packet.split(START_MARKER)
-        if len(parts) != 2:
-            return None
+        # discard start and end markers
+        # and everything outside of them
+        start = data.index(START_MARKER)
+        end = data.index(END_MARKER)
+        # NOTE: start is included, end is excluded
+        packet = data[start+1:end]
 
-        _, data = parts
-        return data
+        return packet
 
     def _wait_ready(self):
         data = self._read_packet(timeout=MAX_CONNECTION_WAIT_TIME)
