@@ -52,7 +52,6 @@ class ContinuousStepIterator(StepIterator):
         self._position = position
 
     def speed(self, speed):
-        # TODO: use this method
         self._speed = speed
 
     def stop(self):

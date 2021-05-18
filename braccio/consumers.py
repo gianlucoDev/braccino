@@ -28,7 +28,20 @@ class BraccioConsumer(JsonWebsocketConsumer):
     def receive_json(self, content):
         #pylint: disable=arguments-differ
 
-        serializer = PositionSerializer(data=content)
+        packet_type = content["type"]
+        data = content["data"]
+
+        if packet_type == "set_position":
+            self._set_position(data)
+        elif packet_type == "set_speed":
+            self._set_speed(data)
+
+    def _set_position(self, data):
+        serializer = PositionSerializer(data=data)
         if serializer.is_valid():
             position = serializer.validated_data
             self.step_iterator.position(position)
+
+    def _set_speed(self, data):
+        speed = int(data["speed"])
+        self.step_iterator.speed(speed)
