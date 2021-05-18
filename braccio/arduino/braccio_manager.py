@@ -32,6 +32,11 @@ class BraccioManager(metaclass=Singleton):
                 elif item['type'] == 'remove':
                     self._on_disconnect(item)
 
+        # this exception should never be reached because the
+        # Arduino CLI is in watch mode and should never exit
+        raise RuntimeError(
+            f'Arduino CLI exited. Exit code: {process.returncode}')
+
     def _on_connect(self, board):
         name = board['boards'][0]['name']
         serial_no = board['serial_number']
