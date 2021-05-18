@@ -42,7 +42,7 @@ This packet does not expect any response.
 | m6             | 1    |        | Desired position of the gripper joint   |
 | `end_marker`   | 1    | `0xF0` |                                         |
 
-### `0x02` get position
+#### `0x02` get position
 
 Sent to the Arduino to request that it sends back the current braccio position.
 The Arduino should responde with a _get position reply_ packet.
@@ -52,6 +52,18 @@ The Arduino should responde with a _get position reply_ packet.
 | `start_marker` | 1    | `0xFF` |             |
 | `packet_id`    | 1    | `0x02` |             |
 | `end_marker`   | 1    | `0xF0` |             |
+
+#### `0x03` set speed
+
+Sent to the Arduino to set the current movement speed.
+The speed is actually the delay in milliseconds between each degree of movement of the servos, so it is expressed in ms/deg.
+
+| name           | size | value  | description            |
+| -------------- | ---- | ------ | ---------------------- |
+| `start_marker` | 1    | `0xFF` |                        |
+| `packet_id`    | 1    | `0x03` |                        |
+| speed          | 1    |        | Desired movement speed |
+| `end_marker`   | 1    | `0xF0` |                        |
 
 ### Arduino to Django
 

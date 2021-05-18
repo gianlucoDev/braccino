@@ -1,8 +1,19 @@
+from dataclasses import dataclass
 from django.db import models
 
 
 class Routine(models.Model):
     name = models.CharField(max_length=50)
+
+
+@dataclass
+class Position:
+    base: int = 90
+    shoulder: int = 45
+    elbow: int = 180
+    wrist_ver: int = 180
+    wrist_rot: int = 90
+    gripper: int = 10
 
 
 class Step(models.Model):
@@ -11,12 +22,35 @@ class Step(models.Model):
     order = models.IntegerField()
 
     delay = models.IntegerField()
-    m1 = models.IntegerField()
-    m2 = models.IntegerField()
-    m3 = models.IntegerField()
-    m4 = models.IntegerField()
-    m5 = models.IntegerField()
-    m6 = models.IntegerField()
+    speed = models.IntegerField()
+
+    # position
+    _m1 = models.IntegerField()
+    _m2 = models.IntegerField()
+    _m3 = models.IntegerField()
+    _m4 = models.IntegerField()
+    _m5 = models.IntegerField()
+    _m6 = models.IntegerField()
+
+    @property
+    def position(self) -> Position:
+        return Position(
+            base=self._m1,
+            shoulder=self._m2,
+            elbow=self._m3,
+            wrist_ver=self._m4,
+            wrist_rot=self._m5,
+            gripper=self._m6,
+        )
+
+    @position.setter
+    def position(self, position: Position):
+        self._m1 = position.base
+        self._m2 = position.shoulder
+        self._m3 = position.elbow
+        self._m4 = position.wrist_ver
+        self._m5 = position.wrist_rot
+        self._m6 = position.gripper
 
     class Meta:
         ordering = ['order']

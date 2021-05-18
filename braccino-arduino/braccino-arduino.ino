@@ -15,6 +15,7 @@ boolean newData = false;
 // django -> arduino
 const byte SETPOS_ID = 0x01;
 const byte GETPOS_ID = 0x02;
+const byte SETSPEED_ID = 0x03;
 
 // django <- arduino
 const byte HELLO_ID = 0x00;
@@ -22,6 +23,7 @@ const byte GETPOS_REPLY_ID = 0x02;
 
 // braccio target position
 braccioPosition targetPosition;
+int speed = 30;
 
 void setup() {
   // Initialize serial
@@ -36,7 +38,7 @@ void setup() {
 
 void sendReady() {
   byte ping_data[] = {startMarker, HELLO_ID, 0xAA, endMarker};
-  Serial.write(ping_data, 3);
+  Serial.write(ping_data, 4);
 }
 
 void loop() {
@@ -44,7 +46,7 @@ void loop() {
   handlePacket();
 
   // move the Braccio towards desired position
-  braccioServoStep(30, targetPosition);
+  braccioServoStep(speed, targetPosition);
 }
 
 void receiveData() {
@@ -92,6 +94,10 @@ void handlePacket() {
     case GETPOS_ID:
       handleGetPosition();
       break;
+
+    case SETSPEED_ID:
+      handleSetSpeed();
+      break;
   }
 
   newData = false;
@@ -125,4 +131,10 @@ void handleGetPosition() {
   };
 
   Serial.write(packetData, 9);
+}
+
+void handleSetSpeed() {
+  // first byte is packet ID
+  // second byte is desired speed
+  speed = receivedBytes[1];
 }

@@ -26,7 +26,7 @@ class BraccioManager(metaclass=Singleton):
             stdout=subprocess.PIPE, universal_newlines=True)
 
         for item in json_iter(process.stdout):
-            if  'boards' in item: 
+            if 'boards' in item:
                 if item['type'] == 'add':
                     self._on_connect(item)
                 elif item['type'] == 'remove':
