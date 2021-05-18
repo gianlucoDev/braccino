@@ -29,7 +29,6 @@ void setup() {
   // Initialize serial
   Serial.begin(9600);
 
-  // TODO: re-implement soft-start
   braccioBegin();
 
   // Signal that the arduino is ready
