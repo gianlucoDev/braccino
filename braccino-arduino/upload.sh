@@ -2,7 +2,7 @@
 # script dependencies: arduino-cli, jq
 
 # board information
-port="/dev/ttyACM0"
+port="/dev/ttyACM1"
 fqbn="arduino:avr:mega"
 platform="arduino:avr"
 
