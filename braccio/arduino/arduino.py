@@ -84,7 +84,7 @@ class Arduino:
 
         self.connection_status = ConnectionStatus.CONNECTING
         try:
-            self.serial = Serial(self.serial_path, 9600)
+            self.serial = Serial(self.serial_path, 38400)
         except SerialException:
             logger.exception('Could not open serial port %s', self.serial_path)
             self.connection_status = ConnectionStatus.ERR_NO_SERIAL

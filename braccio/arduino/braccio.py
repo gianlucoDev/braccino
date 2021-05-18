@@ -49,7 +49,6 @@ class Braccio(Arduino):
         current = self.get_current_position()
         while current != expected:
             current = self.get_current_position()
-            time.sleep(0.1)
 
     def set_speed(self, speed):
         self._write_packet([SETSPEED_ID, speed])
