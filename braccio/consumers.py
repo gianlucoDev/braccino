@@ -8,6 +8,7 @@ class BraccioConsumer(JsonWebsocketConsumer):
 
     def connect(self):
         #pylint: disable=attribute-defined-outside-init
+        self.step_iterator = None
 
         serial_number = self.scope['url_route']['kwargs']['serial_number']
         braccio = BraccioManager().get_by_serial(serial_number)
@@ -21,7 +22,8 @@ class BraccioConsumer(JsonWebsocketConsumer):
         self.accept()
 
     def disconnect(self, code):
-        self.step_iterator.stop()
+        if self.step_iterator is not None:
+            self.step_iterator.stop()
 
     def receive_json(self, content):
         #pylint: disable=arguments-differ
