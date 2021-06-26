@@ -19,10 +19,10 @@
       // missing docstring
       "--disable=C0111",
 
-      // allow two letter variables
-      "--variable-rgx=[a-z0-9_]{2,30}$",
-      "--argument-rgx=[a-z0-9_]{2,30}$",
-      "--attr-rgx=[a-z0-9_]{2,30}$",
+      // allow one letter variable names
+      "--variable-rgx=[a-z0-9_]{1,30}$",
+      "--argument-rgx=[a-z0-9_]{1,30}$",
+      "--attr-rgx=[a-z0-9_]{1,30}$",
 
       // Django plugin
       "--load-plugins=pylint_django",
