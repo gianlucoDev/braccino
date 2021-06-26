@@ -44,7 +44,7 @@ class ContinuousStepIterator(StepIterator):
     name = 'remote_control'
 
     def __init__(self):
-        self._position = Position()
+        self._position = Position(0, 0, 0)
         self._speed = 30
         self._stop = False
 

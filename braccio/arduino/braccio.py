@@ -22,28 +22,32 @@ class Braccio(Arduino):
         super().__init__(name, serial_number, serial_path)
 
     def set_target_position(self, position: Position):
-        self._write_packet([SETPOS_ID,
-                            position.base,
-                            position.shoulder,
-                            position.elbow,
-                            position.wrist_ver,
-                            position.wrist_rot,
-                            position.gripper,
-                            ])
+        raise NotImplementedError
+
+        # self._write_packet([SETPOS_ID,
+        #                     position.base,
+        #                     position.shoulder,
+        #                     position.elbow,
+        #                     position.wrist_ver,
+        #                     position.wrist_rot,
+        #                     position.gripper,
+        #                     ])
 
     def get_current_position(self):
-        self._write_packet([GETPOS_ID])
-        data = self._read_packet(timeout=1)
+        raise NotImplementedError
 
-        # ignore fist byte because it's packet ID
-        return Position(
-            base=data[1],
-            shoulder=data[2],
-            elbow=data[3],
-            wrist_ver=data[4],
-            wrist_rot=data[5],
-            gripper=data[6],
-        )
+        # self._write_packet([GETPOS_ID])
+        # data = self._read_packet(timeout=1)
+
+        # # ignore fist byte because it's packet ID
+        # return Position(
+        #     base=data[1],
+        #     shoulder=data[2],
+        #     elbow=data[3],
+        #     wrist_ver=data[4],
+        #     wrist_rot=data[5],
+        #     gripper=data[6],
+        # )
 
     def wait_for_position(self, expected):
         current = self.get_current_position()

@@ -2,60 +2,25 @@ from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from .models import Position, Routine, Step
 
-JOINTS = {
-    'base': (0, 180),
-    'shoulder': (15, 165),
-    'elbow': (0, 180),
-    'wrist_ver': (0, 180),
-    'wrist_rot': (0, 180),
-    'gripper': (10, 73),
-}
-
 
 class PositionSerializer(serializers.Serializer):
     # pylint: disable=abstract-method
 
     def to_representation(self, instance: Position):
         json = {
-            "base": instance.base,
-            "shoulder": instance.shoulder,
-            "elbow": instance.elbow,
-            "wrist_ver": instance.wrist_ver,
-            "wrist_rot": instance.wrist_rot,
-            "gripper": instance.gripper,
+            "x": instance.x,
+            "y": instance.y,
+            "z": instance.z,
         }
         return json
 
     def to_internal_value(self, data) -> Position:
         position = Position(
-            base=data["base"],
-            shoulder=data["shoulder"],
-            elbow=data["elbow"],
-            wrist_ver=data["wrist_ver"],
-            wrist_rot=data["wrist_rot"],
-            gripper=data["gripper"],
+            data["x"],
+            data["y"],
+            data["z"],
         )
         return position
-
-    def validate(self, attrs: Position):
-        invalid = {}
-
-        def check_min_max(value, name):
-            min_value, max_value = JOINTS[name]
-            if value < min_value or value > max_value:
-                invalid[name] = f"Ensure this value is between {min_value} and {max_value}."
-
-        check_min_max(attrs.base, 'base')
-        check_min_max(attrs.shoulder, 'shoulder')
-        check_min_max(attrs.elbow, 'elbow')
-        check_min_max(attrs.wrist_ver, 'wrist_ver')
-        check_min_max(attrs.wrist_rot, 'wrist_rot')
-        check_min_max(attrs.gripper, 'gripper')
-
-        if invalid:
-            raise ValidationError(invalid)
-
-        return attrs
 
 
 class StepSerializer(serializers.ModelSerializer):
