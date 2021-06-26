@@ -1,7 +1,8 @@
 import threading
 import time
+from dataclasses import dataclass
+from .braccio_ik import solve_ik
 
-from routines.models import Position
 from .arduino import Arduino
 from .step_iterators import StepIterator
 
@@ -14,6 +15,16 @@ SETSPEED_ID = 0x03
 GETPOS_REPLY_ID = 0x02
 
 
+@dataclass
+class Angles:
+    base: int = 90
+    shoulder: int = 45
+    elbow: int = 180
+    wrist_ver: int = 180
+    wrist_rot: int = 90
+    gripper: int = 10
+
+
 class Braccio(Arduino):
 
     def __init__(self, name, serial_number, serial_path):
@@ -21,38 +32,34 @@ class Braccio(Arduino):
         self.running = None
         super().__init__(name, serial_number, serial_path)
 
-    def set_target_position(self, position: Position):
-        raise NotImplementedError
+    def set_target_angles(self, angles: Angles):
+        self._write_packet([SETPOS_ID,
+                            angles.base,
+                            angles.shoulder,
+                            angles.elbow,
+                            angles.wrist_ver,
+                            angles.wrist_rot,
+                            angles.gripper,
+                            ])
 
-        # self._write_packet([SETPOS_ID,
-        #                     position.base,
-        #                     position.shoulder,
-        #                     position.elbow,
-        #                     position.wrist_ver,
-        #                     position.wrist_rot,
-        #                     position.gripper,
-        #                     ])
+    def get_current_angles(self) -> Angles:
+        self._write_packet([GETPOS_ID])
+        data = self._read_packet(timeout=1)
 
-    def get_current_position(self):
-        raise NotImplementedError
-
-        # self._write_packet([GETPOS_ID])
-        # data = self._read_packet(timeout=1)
-
-        # # ignore fist byte because it's packet ID
-        # return Position(
-        #     base=data[1],
-        #     shoulder=data[2],
-        #     elbow=data[3],
-        #     wrist_ver=data[4],
-        #     wrist_rot=data[5],
-        #     gripper=data[6],
-        # )
+        # ignore fist byte because it's packet ID
+        return Angles(
+            base=data[1],
+            shoulder=data[2],
+            elbow=data[3],
+            wrist_ver=data[4],
+            wrist_rot=data[5],
+            gripper=data[6],
+        )
 
     def wait_for_position(self, expected):
-        current = self.get_current_position()
+        current = self.get_current_angles()
         while current != expected:
-            current = self.get_current_position()
+            current = self.get_current_angles()
 
     def set_speed(self, speed):
         self._write_packet([SETSPEED_ID, speed])
@@ -61,8 +68,14 @@ class Braccio(Arduino):
         self.running = steps
 
         for step in steps:
-            # set target position and speed
-            self.set_target_position(step.position)
+            # solve ik and create Angles()
+            base, shoulder, elbow, wrist = solve_ik(
+                step.position, step.attack_angle)
+            angles = Angles(base, shoulder, elbow, wrist,
+                            step.gripper_rotation, step.gripper)
+
+            # set angles and speed
+            self.set_target_angles(angles)
             self.set_speed(step.speed)
 
             # wait for the braccio to reach position

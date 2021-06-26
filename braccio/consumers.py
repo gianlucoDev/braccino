@@ -40,8 +40,8 @@ class BraccioConsumer(JsonWebsocketConsumer):
         serializer = PositionSerializer(data=data)
         if serializer.is_valid():
             position = serializer.validated_data
-            self.step_iterator.position(position)
+            self.step_iterator.position = position
 
     def _set_speed(self, data):
         speed = int(data["speed"])
-        self.step_iterator.speed(speed)
+        self.step_iterator.speed = speed

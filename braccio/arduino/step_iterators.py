@@ -6,9 +6,12 @@ from routines.models import Routine, Position
 
 @dataclass
 class Step:
-    position: Position
     speed: int
     delay: int
+    attack_angle: int
+    gripper: int
+    gripper_rot: int
+    position: Position
     wait_for_position: bool
 
 
@@ -32,9 +35,12 @@ class RoutineStepIterator(StepIterator):
     def __iter__(self):
         for routine_step in self.routine.steps.all():
             yield Step(
-                position=routine_step.position,
                 speed=routine_step.speed,
                 delay=routine_step.delay,
+                attack_angle=routine_step.attack_angle,
+                gripper=routine_step.gripper,
+                gripper_rot=routine_step.gripper_rot,
+                position=routine_step.position,
                 wait_for_position=True,
             )
 
@@ -44,15 +50,13 @@ class ContinuousStepIterator(StepIterator):
     name = 'remote_control'
 
     def __init__(self):
-        self._position = Position(0, 0, 0)
-        self._speed = 30
+        # FIXME: set sensible defaults
+        self.speed = 30
+        self.attack_angle = None
+        self.gripper = 10
+        self.gripper_rot = 45
+        self.position = Position(0, 0, 0)
         self._stop = False
-
-    def position(self, position: Position):
-        self._position = position
-
-    def speed(self, speed):
-        self._speed = speed
 
     def stop(self):
         self._stop = True
@@ -65,8 +69,11 @@ class ContinuousStepIterator(StepIterator):
             raise StopIteration
 
         return Step(
-            position=self._position,
-            speed=self._speed,
             delay=100,
             wait_for_position=False,
+            speed=self.speed,
+            attack_angle=self.attack_angle,
+            gripper=self.gripper,
+            gripper_rot=self.gripper_rot,
+            position=self.position,
         )

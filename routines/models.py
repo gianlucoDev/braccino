@@ -8,6 +8,7 @@ class Routine(models.Model):
 
 Position = namedtuple('Position', ('x', 'y', 'z'))
 
+
 class Step(models.Model):
     routine = models.ForeignKey(
         Routine, on_delete=models.CASCADE, related_name='steps')
@@ -15,6 +16,11 @@ class Step(models.Model):
 
     delay = models.IntegerField()
     speed = models.IntegerField()
+
+    # user may not specify an attack angle
+    attack_angle = models.IntegerField(default=None, blank=True, null=True)
+    gripper = models.IntegerField()
+    gripper_rot = models.IntegerField()
 
     # position
     _x = models.IntegerField()
