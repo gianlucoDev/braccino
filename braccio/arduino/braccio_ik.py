@@ -1,8 +1,11 @@
 from collections import namedtuple
 from dataclasses import dataclass
-from math import acos, degrees, pi, radians, atan2, sqrt
+from math import acos, cos, degrees, pi, radians, atan2, sin, sqrt
+from typing import Optional
 
 from routines.models import Position
+
+# This code was adapted from https://github.com/cgxeiji/CGx-InverseK/
 
 
 @dataclass
@@ -16,7 +19,7 @@ class Link:
 
 
 BASE = Link(
-    0,
+    0,  # this actually indicated the heigth of the base
     radians(0),
     radians(180))
 
@@ -52,40 +55,68 @@ def cos_rule(opposite, adjacent1, adjacent2):
     if delta == 0:
         return None
 
-    cos = (pow(adjacent1, 2) + pow(adjacent2, 2) - pow(opposite, 2)) / delta
-    if cos > 1 or cos < -1:
+    calculated_cos = (
+        pow(adjacent1, 2) + pow(adjacent2, 2) - pow(opposite, 2)) / delta
+    if calculated_cos > 1 or calculated_cos < -1:
         return None
 
-    angle = acos(cos)
+    angle = acos(calculated_cos)
     return angle
 
 
-def solve_xy_angle(x, y, attack_angle):
-    raise NotImplementedError
+def _solve_xy_angle(x, y, attack_angle):
+
+    # find coordinates of wrist
+    x_wrist = x + HAND.length * cos(attack_angle)
+    y_wrist = y + HAND.length * sin(attack_angle)
+
+    # get polar coordinates
+    alpha = atan2(y_wrist, x_wrist)
+    r = distance(ORIGIN, Point(x_wrist, y_wrist))
+
+    # inner angle of shoulder
+    beta = cos_rule(FOREARM.length, r, UPPERARM.length)
+    if beta is None:
+        return None
+
+    # inner angle of elbow
+    gamma = cos_rule(r, UPPERARM.length, FOREARM.length)
+    if gamma is None:
+        return None
+
+    # solve angles
+    shoulder = alpha - beta
+    elbow = pi - gamma
+    wrist = attack_angle - shoulder - elbow
+
+    def all_in_range():
+        return UPPERARM.in_range(
+            shoulder) and FOREARM.in_range(elbow) and HAND.in_range(wrist)
+
+    if not all_in_range():
+        # try second soulution
+        shoulder += 2 * beta
+        elbow = -elbow
+        wrist = attack_angle - shoulder - elbow
+
+        if not all_in_range():
+            return None
+
+    return shoulder, elbow, wrist
 
 
-def solve_xy(x, y):
+def _solve_xy(x, y):
     # test every angle to find a valid solution
     for i in range(0, 360):
         attack_angle = radians(i)
-        result = solve_xy_angle(x, y, attack_angle)
+        result = _solve_xy_angle(x, y, attack_angle)
         if result is not None:
             return result
 
     return None
 
 
-def solve_ik(position: Position, attack_angle: int):
-    """
-    Given a position and an attack angle, calculate the inverse kinematics for the Arduino Braccio.
-    Returns the calculated ik, or `None` if no solution is found.
-
-    Used https://github.com/cgxeiji/CGx-InverseK as reference.
-    """
-
-    # prepare inputs
-    x, y, z = position
-    attack_angle = radians(attack_angle)
+def _solve(x: int, y: int, z: int, attack_angle: Optional[float] = None):
 
     # calculate base angle
     r = distance(ORIGIN, Point(x, y))
@@ -100,14 +131,26 @@ def solve_ik(position: Position, attack_angle: int):
 
     # calculate other angles
     if attack_angle is None:
-        res = solve_xy(r, z - BASE.length)
+        res = _solve_xy(r, z - BASE.length)
     else:
-        res = solve_xy_angle(
+        res = _solve_xy_angle(
             r, z - BASE.length, attack_angle)
 
     if res is None:
         return None
 
-    # convert to degrees and return
     shoulder, elbow, wrist = res
-    return degrees(base), degrees(shoulder), degrees(elbow), degrees(wrist)
+    return base, shoulder, elbow, wrist
+
+
+def solve_ik(position: Position, attack_angle: Optional[int] = None):
+    # prepare inputs
+    x, y, z = position
+    attack_angle = radians(attack_angle) if attack_angle is not None else None
+
+    result = _solve(x, y, z, attack_angle)
+    if result is None:
+        return None
+
+    base, shoulder, elbow, wrist = result
+    return int(degrees(base)), int(degrees(shoulder)), int(degrees(elbow)), int(degrees(wrist))

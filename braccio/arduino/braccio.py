@@ -1,3 +1,4 @@
+import logging
 import threading
 import time
 from dataclasses import dataclass
@@ -5,6 +6,8 @@ from .braccio_ik import solve_ik
 
 from .arduino import Arduino
 from .step_iterators import StepIterator
+
+logger = logging.getLogger(__name__)
 
 # django -> arduino
 SETPOS_ID = 0x01
@@ -56,7 +59,7 @@ class Braccio(Arduino):
             gripper=data[6],
         )
 
-    def wait_for_position(self, expected):
+    def wait_for_angles_aligned(self, expected):
         current = self.get_current_angles()
         while current != expected:
             current = self.get_current_angles()
@@ -68,11 +71,24 @@ class Braccio(Arduino):
         self.running = steps
 
         for step in steps:
-            # solve ik and create Angles()
-            base, shoulder, elbow, wrist = solve_ik(
+            # solve ik
+            result = solve_ik(
                 step.position, step.attack_angle)
-            angles = Angles(base, shoulder, elbow, wrist,
-                            step.gripper_rotation, step.gripper)
+
+            if result is None:
+                logger.error('No ik solution found for step %s', step)
+                continue
+
+            # combine ik angles and step angles to get full Angles()
+            base, shoulder, elbow, wrist = result
+            angles = Angles(
+                base=base,
+                shoulder=shoulder,
+                elbow=elbow,
+                wrist_ver=wrist,
+                wrist_rot=step.gripper_rot,
+                gripper=step.gripper,
+            )
 
             # set angles and speed
             self.set_target_angles(angles)
@@ -80,7 +96,7 @@ class Braccio(Arduino):
 
             # wait for the braccio to reach position
             if step.wait_for_position:
-                self.wait_for_position(step.position)
+                self.wait_for_angles_aligned(angles)
 
             # wait specified delay
             time.sleep(step.delay / 1000)
