@@ -25,11 +25,18 @@ class PositionSerializer(serializers.Serializer):
 class StepSerializer(serializers.ModelSerializer):
     delay = serializers.IntegerField(min_value=0)
     speed = serializers.IntegerField(min_value=10, max_value=30)
+
+    attack_angle = serializers.IntegerField(
+        min_value=0, max_value=360, required=False, allow_null=True)
+    gripper = serializers.IntegerField(min_value=10, max_value=73)
+    gripper_rot = serializers.IntegerField(min_value=0, max_value=180)
+
     position = PositionSerializer()
 
     class Meta:
         model = Step
-        fields = ['delay', 'speed', 'position']
+        fields = ['delay', 'speed', 'attack_angle',
+                  'gripper', 'gripper_rot', 'position']
 
 
 class RoutineSerializer(serializers.ModelSerializer):
