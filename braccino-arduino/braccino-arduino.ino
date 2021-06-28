@@ -123,18 +123,24 @@ void handleSetPosition() {
   // skip first byte because it's the packet type ID
 
   // target position
-  int x = receivedBytes[1];
-  int y = receivedBytes[2];
-  int z = receivedBytes[3];
+  byte x = receivedBytes[1];
+  byte y = receivedBytes[2];
+  byte z = receivedBytes[3];
 
   // TODO: handle attack angle
-
-  // gripper data
-  int wrist_rot = receivedBytes[4];
-  int gripper = receivedBytes[5];
+  byte attack_angle = receivedBytes[4];
+  byte wrist_rot = receivedBytes[5];
+  byte gripper = receivedBytes[6];
 
   float base, shoulder, elbow, wrist_ver;
-  bool ok = InverseK.solve(x, y, z, base, shoulder, elbow, wrist_ver);
+  bool ok;
+  if (attack_angle == 255) {
+    ok = InverseK.solve(x, y, z, base, shoulder, elbow, wrist_ver);
+  } else {
+    attack_angle = b2a(attack_angle);
+    ok =
+        InverseK.solve(x, y, z, base, shoulder, elbow, wrist_ver, attack_angle);
+  }
 
   // if ik solution was found, set motor angles
   if (ok) {
@@ -142,8 +148,8 @@ void handleSetPosition() {
     targetAngles.shoulder = (int)a2b(shoulder);
     targetAngles.elbow = (int)a2b(elbow);
     targetAngles.wrist_ver = (int)a2b(wrist_ver);
-    targetAngles.wrist_rot = wrist_rot;
-    targetAngles.gripper = gripper;
+    targetAngles.wrist_rot = (int)wrist_rot;
+    targetAngles.gripper = (int)gripper;
   }
 
   // communicate wheter a ik solution was found

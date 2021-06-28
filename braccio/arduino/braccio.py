@@ -37,11 +37,13 @@ class Braccio(Arduino):
         self.running = None
         super().__init__(name, serial_number, serial_path)
 
-    def set_target_position(self, position: Position, gripper: int, gripper_rot: int):
+    def set_target_position(self,
+                            position: Position, attack_angle: int, gripper: int, gripper_rot: int):
         self._write_packet([SETPOS_ID,
                             position.x,
                             position.y,
                             position.z,
+                            attack_angle if attack_angle is not None else 255,
                             gripper_rot,
                             gripper,
                             ])
@@ -74,7 +76,7 @@ class Braccio(Arduino):
 
             # set position
             ik_solved = self.set_target_position(
-                step.position, step.gripper, step.gripper_rot)
+                step.position, step.attack_angle, step.gripper, step.gripper_rot)
 
             if not ik_solved:
                 logger.error('No ik solution found for step %s', step)
