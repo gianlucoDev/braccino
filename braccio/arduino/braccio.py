@@ -2,8 +2,8 @@ import logging
 import threading
 import time
 from dataclasses import dataclass
-from .braccio_ik import solve_ik
 
+from routines.models import Position
 from .arduino import Arduino
 from .step_iterators import StepIterator
 
@@ -11,11 +11,13 @@ logger = logging.getLogger(__name__)
 
 # django -> arduino
 SETPOS_ID = 0x01
-GETPOS_ID = 0x02
+POS_QUERY_ID = 0x02
 SETSPEED_ID = 0x03
 
 # django <- arduino
-GETPOS_REPLY_ID = 0x02
+HELLO_ID = 0x00
+SETPOS_REPLY_ID = 0x01
+POS_QUERY_REPLY_ID = 0x02
 
 
 @dataclass
@@ -35,34 +37,30 @@ class Braccio(Arduino):
         self.running = None
         super().__init__(name, serial_number, serial_path)
 
-    def set_target_angles(self, angles: Angles):
+    def set_target_position(self, position: Position, gripper: int, gripper_rot: int):
         self._write_packet([SETPOS_ID,
-                            angles.base,
-                            angles.shoulder,
-                            angles.elbow,
-                            angles.wrist_ver,
-                            angles.wrist_rot,
-                            angles.gripper,
+                            position.x,
+                            position.y,
+                            position.z,
+                            gripper_rot,
+                            gripper,
                             ])
 
-    def get_current_angles(self) -> Angles:
-        self._write_packet([GETPOS_ID])
         data = self._read_packet(timeout=1)
+        ok = bool(data[1])
+        return ok
 
-        # ignore fist byte because it's packet ID
-        return Angles(
-            base=data[1],
-            shoulder=data[2],
-            elbow=data[3],
-            wrist_ver=data[4],
-            wrist_rot=data[5],
-            gripper=data[6],
-        )
+    def is_on_position(self) -> bool:
+        self._write_packet([POS_QUERY_ID])
+        data = self._read_packet(timeout=1)
+        ok = bool(data[1])
+        return ok
 
-    def wait_for_angles_aligned(self, expected):
-        current = self.get_current_angles()
-        while current != expected:
-            current = self.get_current_angles()
+    def wait_for_position_reached(self):
+        # FIXME: this is ugly.
+        # I should make it so the the Arduino sends a message when the position has been reached
+        while not self.is_on_position():
+            pass
 
     def set_speed(self, speed):
         self._write_packet([SETSPEED_ID, speed])
@@ -71,32 +69,17 @@ class Braccio(Arduino):
         self.running = steps
 
         for step in steps:
-            # solve ik
-            result = solve_ik(
-                step.position, step.attack_angle)
-
-            if result is None:
-                logger.error('No ik solution found for step %s', step)
-                continue
-
-            # combine ik angles and step angles to get full Angles()
-            base, shoulder, elbow, wrist = result
-            angles = Angles(
-                base=base,
-                shoulder=shoulder,
-                elbow=elbow,
-                wrist_ver=wrist,
-                wrist_rot=step.gripper_rot,
-                gripper=step.gripper,
-            )
-
-            # set angles and speed
-            self.set_target_angles(angles)
+            # set speed
             self.set_speed(step.speed)
 
-            # wait for the braccio to reach position
-            if step.wait_for_position:
-                self.wait_for_angles_aligned(angles)
+            # set position
+            ik_solved = self.set_target_position(
+                step.position, step.gripper, step.gripper_rot)
+
+            if not ik_solved:
+                logger.error('No ik solution found for step %s', step)
+            elif step.wait_for_position:
+                self.wait_for_position_reached()
 
             # wait specified delay
             time.sleep(step.delay / 1000)

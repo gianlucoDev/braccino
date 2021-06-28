@@ -9,9 +9,9 @@
 #define SOFT_START_DEFAULT_LEVEL 0
 
 /**
- * Represent the position of a Braccio
+ * Represent the angles of the servomotors of a Braccio
  */
-struct braccioPosition {
+struct braccioAngles {
   // Base degrees. Allowed values from 0 to 180 degrees.
   int base = 0;
   // Shoulder degrees. Allowed values from 15 to 165 degrees.
@@ -40,15 +40,15 @@ struct braccioPosition {
 void braccioBegin();
 
 /**
- * Move all the servos one step closer to the target position.
+ * Move all the servos one step closer to the target angles.
  *
  * @param stepDelay milliseconds delay between the movement of each servo.
  * Allowed values from 10 to 30 msec.
- * @param targetPosition the position towards witch the Braccio should move.
+ * @param targetAngles the angles towards witch the Braccio should move.
  */
-void braccioServoStep(int stepDelay, braccioPosition targetPosition);
+void braccioServoStep(int stepDelay, braccioAngles targetAngles);
 
 /**
- * @returns the current position of the braccio.
+ * @returns the current angles of the motors.
  */
-braccioPosition braccioCurrentPostion();
+braccioAngles braccioCurrentAngles();

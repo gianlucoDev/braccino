@@ -1,4 +1,4 @@
-#include <Servo.h>
+#include <InverseK.h>
 
 #include "./braccio-control.h"
 
@@ -14,20 +14,37 @@ boolean newData = false;
 
 // django -> arduino
 const byte SETPOS_ID = 0x01;
-const byte GETPOS_ID = 0x02;
+const byte POS_QUERY_ID = 0x02;
 const byte SETSPEED_ID = 0x03;
 
 // django <- arduino
 const byte HELLO_ID = 0x00;
-const byte GETPOS_REPLY_ID = 0x02;
+const byte SETPOS_REPLY_ID = 0x01;
+const byte POS_QUERY_REPLY_ID = 0x02;
 
-// braccio target position
-braccioPosition targetPosition;
+// braccio links
+Link base_link, upperarm_link, forearm_link, hand_link;
+
+// braccio control variables
+braccioAngles targetAngles;
 int speed = 30;
+
+// Quick conversion from the Braccio angle system to radians
+float b2a(float b) { return b / 180.0 * PI - HALF_PI; }
+
+// Quick conversion from radians to the Braccio angle system
+float a2b(float a) { return (a + HALF_PI) * 180 / PI; }
 
 void setup() {
   // Initialize serial
   Serial.begin(38400);
+
+  // initialize ik library
+  base_link.init(0, b2a(0.0), b2a(180.0));
+  upperarm_link.init(200, b2a(15.0), b2a(165.0));
+  forearm_link.init(200, b2a(0.0), b2a(180.0));
+  hand_link.init(270, b2a(0.0), b2a(180.0));
+  InverseK.attach(base_link, upperarm_link, forearm_link, hand_link);
 
   braccioBegin();
 
@@ -45,7 +62,7 @@ void loop() {
   handlePacket();
 
   // move the Braccio towards desired position
-  braccioServoStep(speed, targetPosition);
+  braccioServoStep(speed, targetAngles);
 }
 
 void receiveData() {
@@ -90,8 +107,8 @@ void handlePacket() {
       handleSetPosition();
       break;
 
-    case GETPOS_ID:
-      handleGetPosition();
+    case POS_QUERY_ID:
+      handlePositionQuery();
       break;
 
     case SETSPEED_ID:
@@ -104,32 +121,60 @@ void handlePacket() {
 
 void handleSetPosition() {
   // skip first byte because it's the packet type ID
-  targetPosition.base = receivedBytes[1];
-  targetPosition.shoulder = receivedBytes[2];
-  targetPosition.elbow = receivedBytes[3];
-  targetPosition.wrist_ver = receivedBytes[4];
-  targetPosition.wrist_rot = receivedBytes[5];
-  targetPosition.gripper = receivedBytes[6];
+
+  // target position
+  int x = receivedBytes[1];
+  int y = receivedBytes[2];
+  int z = receivedBytes[3];
+
+  // TODO: handle attack angle
+
+  // gripper data
+  int wrist_rot = receivedBytes[4];
+  int gripper = receivedBytes[5];
+
+  float base, shoulder, elbow, wrist_ver;
+  bool ok = InverseK.solve(x, y, z, base, shoulder, elbow, wrist_ver);
+
+  // if ik solution was found, set motor angles
+  if (ok) {
+    targetAngles.base = (int)a2b(base);
+    targetAngles.shoulder = (int)a2b(shoulder);
+    targetAngles.elbow = (int)a2b(elbow);
+    targetAngles.wrist_ver = (int)a2b(wrist_ver);
+    targetAngles.wrist_rot = wrist_rot;
+    targetAngles.gripper = gripper;
+  }
+
+  // communicate wheter a ik solution was found
+  byte reply_data[] = {startMarker, SETPOS_REPLY_ID, (byte)ok, endMarker};
+  Serial.write(reply_data, 4);
 }
 
-void handleGetPosition() {
-  braccioPosition currentPosition = braccioCurrentPostion();
+void handlePositionQuery() {
+  braccioAngles currentAngles = braccioCurrentAngles();
 
-  byte packetData[] = {
+  bool positionReached = currentAngles.base == targetAngles.base &&
+                         currentAngles.shoulder == targetAngles.shoulder &&
+                         currentAngles.elbow == targetAngles.elbow &&
+                         currentAngles.wrist_ver == targetAngles.wrist_ver &&
+                         currentAngles.wrist_rot == targetAngles.wrist_rot &&
+                         currentAngles.gripper == targetAngles.gripper;
 
-      startMarker,
-      GETPOS_REPLY_ID,
-      (byte)currentPosition.base,
-      (byte)currentPosition.shoulder,
-      (byte)currentPosition.elbow,
-      (byte)currentPosition.wrist_ver,
-      (byte)currentPosition.wrist_rot,
-      (byte)currentPosition.gripper,
-      endMarker
+  byte reply_data[] = {
+      startMarker, POS_QUERY_REPLY_ID, (byte)positionReached,
+      //
+      0xFA, (byte)currentAngles.base, (byte)currentAngles.shoulder,
+      (byte)currentAngles.elbow, (byte)currentAngles.wrist_ver,
+      (byte)currentAngles.wrist_rot, (byte)currentAngles.gripper,
+      //
+      0xFA, (byte)targetAngles.base, (byte)targetAngles.shoulder,
+      (byte)targetAngles.elbow, (byte)targetAngles.wrist_ver,
+      (byte)targetAngles.wrist_rot, (byte)targetAngles.gripper,
+      //
+      endMarker};
 
-  };
-
-  Serial.write(packetData, 9);
+  Serial.write(reply_data, 18);
 }
 
 void handleSetSpeed() {

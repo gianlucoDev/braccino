@@ -11,8 +11,8 @@ Servo wrist_rot;
 Servo wrist_ver;
 Servo gripper;
 
-// current positions
-braccioPosition current;
+// current motor angles
+braccioAngles current;
 
 void softwarePWM(int high_time, int low_time) {
   digitalWrite(SOFT_START_CONTROL_PIN, HIGH);
@@ -55,7 +55,7 @@ void braccioBegin() {
 
 unsigned long lastStep = 0;
 
-void braccioServoStep(int stepDelay, braccioPosition t) {
+void braccioServoStep(int stepDelay, braccioAngles t) {
   // Check values, to avoid dangerous positions for the Braccio
   if (stepDelay > 30) stepDelay = 30;
   if (stepDelay < 10) stepDelay = 10;
@@ -155,4 +155,4 @@ void braccioServoStep(int stepDelay, braccioPosition t) {
   }
 }
 
-braccioPosition braccioCurrentPostion() { return current; }
+braccioAngles braccioCurrentAngles() { return current; }
