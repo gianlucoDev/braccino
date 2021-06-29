@@ -1,16 +1,10 @@
 #include <InverseK.h>
+#include <PacketSerial.h>
 
 #include "./braccio-control.h"
 
 // serial variables
-const byte startMarker = 0xFF;
-const byte endMarker = 0xF0;
-
-const byte numBytes = 32;
-byte receivedBytes[numBytes];
-byte numReceived = 0;
-
-boolean newData = false;
+PacketSerial packetSerial;
 
 // django -> arduino
 const byte SETPOS_ID = 0x01;
@@ -36,8 +30,9 @@ float b2a(float b) { return b / 180.0 * PI - HALF_PI; }
 float a2b(float a) { return (a + HALF_PI) * 180 / PI; }
 
 void setup() {
-  // Initialize serial
-  Serial.begin(38400);
+  // initialize serial
+  packetSerial.begin(38400);
+  packetSerial.setPacketHandler(&onPacketReceived);
 
   // initialize ik library
   base_link.init(0, b2a(0.0), b2a(180.0));
@@ -46,91 +41,56 @@ void setup() {
   hand_link.init(270, b2a(0.0), b2a(180.0));
   InverseK.attach(base_link, upperarm_link, forearm_link, hand_link);
 
+  // initialize braccio
   braccioBegin();
 
-  // Signal that the arduino is ready
+  // signal that the Arduino is ready
   sendReady();
 }
 
-void sendReady() {
-  byte ping_data[] = {startMarker, HELLO_ID, 0xAA, endMarker};
-  Serial.write(ping_data, 4);
-}
-
 void loop() {
-  receiveData();
-  handlePacket();
-
   // move the Braccio towards desired position
   braccioServoStep(speed, targetAngles);
+
+  // handle packets
+  packetSerial.update();
 }
 
-void receiveData() {
-  static boolean listening = false;
-  static byte index = 0;
-  byte rb;
-
-  while (Serial.available() > 0 && newData == false) {
-    rb = Serial.read();
-
-    // handle start marker
-    if (!listening) {
-      if (rb == startMarker) {
-        listening = true;
-      }
-
-      continue;
-    }
-
-    // handle end marker
-    if (rb == endMarker) {
-      listening = false;
-      numReceived = index;
-      index = 0;
-      newData = true;
-      continue;
-    }
-
-    // handle message
-    receivedBytes[index] = rb;
-
-    // check to avoid out of bounds access
-    if (index < numBytes - 1) index++;
-  }
+void sendReady() {
+  byte ping_data[] = {HELLO_ID, 0xAA};
+  packetSerial.send(ping_data, 2);
 }
 
-void handlePacket() {
-  if (!newData) return;
+void onPacketReceived(const uint8_t* packet, size_t size) {
+  byte packetId = packet[0];
 
-  switch (receivedBytes[0]) {
+  switch (packetId) {
     case SETPOS_ID:
-      handleSetPosition();
+      onSetPosition(packet, size);
       break;
 
     case POS_QUERY_ID:
-      handlePositionQuery();
+      onPositionQuery(packet, size);
       break;
 
     case SETSPEED_ID:
-      handleSetSpeed();
+      onSetSpeed(packet, size);
       break;
   }
-
-  newData = false;
 }
 
-void handleSetPosition() {
+void onSetPosition(const uint8_t* packet, size_t size) {
   // skip first byte because it's the packet type ID
 
   // target position
-  byte x = receivedBytes[1];
-  byte y = receivedBytes[2];
-  byte z = receivedBytes[3];
+  byte x = packet[1];
+  byte y = packet[2];
+  byte z = packet[3];
 
   // TODO: handle attack angle
-  byte attack_angle = receivedBytes[4];
-  byte wrist_rot = receivedBytes[5];
-  byte gripper = receivedBytes[6];
+  byte attack_angle = packet[4];
+  byte wrist_rot = packet[5];
+  byte gripper = packet[6];
 
   float base, shoulder, elbow, wrist_ver;
   bool ok;
@@ -153,13 +113,14 @@ void handleSetPosition() {
   }
 
   // communicate wheter a ik solution was found
-  byte reply_data[] = {startMarker, SETPOS_REPLY_ID, (byte)ok, endMarker};
-  Serial.write(reply_data, 4);
+  byte reply_data[] = {SETPOS_REPLY_ID, (byte)ok};
+  packetSerial.send(reply_data, 2);
 }
 
-void handlePositionQuery() {
+void onPositionQuery(const uint8_t* packet, size_t size) {
   braccioAngles currentAngles = braccioCurrentAngles();
 
+  // wether braccio has reached target position
   bool positionReached = currentAngles.base == targetAngles.base &&
                          currentAngles.shoulder == targetAngles.shoulder &&
                          currentAngles.elbow == targetAngles.elbow &&
@@ -167,24 +128,12 @@ void handlePositionQuery() {
                          currentAngles.wrist_rot == targetAngles.wrist_rot &&
                          currentAngles.gripper == targetAngles.gripper;
 
-  byte reply_data[] = {
-      startMarker, POS_QUERY_REPLY_ID, (byte)positionReached,
-      //
-      0xFA, (byte)currentAngles.base, (byte)currentAngles.shoulder,
-      (byte)currentAngles.elbow, (byte)currentAngles.wrist_ver,
-      (byte)currentAngles.wrist_rot, (byte)currentAngles.gripper,
-      //
-      0xFA, (byte)targetAngles.base, (byte)targetAngles.shoulder,
-      (byte)targetAngles.elbow, (byte)targetAngles.wrist_ver,
-      (byte)targetAngles.wrist_rot, (byte)targetAngles.gripper,
-      //
-      endMarker};
-
-  Serial.write(reply_data, 18);
+  byte reply_data[] = {POS_QUERY_REPLY_ID, (byte)positionReached};
+  packetSerial.send(reply_data, 2);
 }
 
-void handleSetSpeed() {
+void onSetSpeed(const uint8_t* packet, size_t size) {
   // first byte is packet ID
   // second byte is desired speed
-  speed = receivedBytes[1];
+  speed = packet[1];
 }

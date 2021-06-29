@@ -2,12 +2,12 @@ from enum import Enum
 import logging
 
 from serial import Serial, to_bytes, SerialException
+from cobs import cobs
 
 logger = logging.getLogger(__name__)
 
-# message markers
-START_MARKER = b'\xFF'
-END_MARKER = b'\xF0'
+# the 0 byte signals the end of a packet
+END_MARKER = b'\x00'
 
 # django <- arduino
 HELLO_ID = 0x00
@@ -44,24 +44,19 @@ class Arduino:
 
     def _write_packet(self, data):
         data = to_bytes(data)
-        packet = START_MARKER + data + END_MARKER
+        packet = cobs.encode(data) + END_MARKER
         self.serial.write(packet)
 
     def _read_packet(self, timeout=None):
         self.serial.timeout = timeout
 
-        data = self.serial.read_until(expected=END_MARKER)
-        if not data:
+        packet = self.serial.read_until(expected=END_MARKER)
+        if not packet:
             return None
 
-        # discard start and end markers
-        # and everything outside of them
-        start = data.index(START_MARKER)
-        end = data.index(END_MARKER)
-        # NOTE: start is included, end is excluded
-        packet = data[start+1:end]
-
-        return packet
+        packet = packet[:-1]  # remove trailing 0 byte
+        data = cobs.decode(packet)
+        return data
 
     def _wait_ready(self):
         data = self._read_packet(timeout=MAX_CONNECTION_WAIT_TIME)

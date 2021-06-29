@@ -3,6 +3,7 @@ This Arduino sketch communicates with the Django application through serial and 
 ## Libraries
 
 - Servo.h
+- PacketSerial.h (https://github.com/bakercp/PacketSerial)
 - InverseK.h (https://github.com/cgxeiji/CGx-InverseK.git)
 
 ## Serial protocol
