@@ -105,10 +105,15 @@ void onSetPosition(const uint8_t* packet, size_t size) {
 
   // if ik solution was found, set motor angles
   if (ok) {
+    // apparently someone mounted the motor upside down
+    // so i'm just going to reverse the angle
+    int wv = (int)a2b(wrist_ver);
+    wv = 180 - wv;
+
     targetAngles.base = (int)a2b(base);
     targetAngles.shoulder = (int)a2b(shoulder);
     targetAngles.elbow = (int)a2b(elbow);
-    targetAngles.wrist_ver = (int)a2b(wrist_ver);
+    targetAngles.wrist_ver = wv;
     targetAngles.wrist_rot = (int)wrist_rot;
     targetAngles.gripper = (int)gripper;
   }
