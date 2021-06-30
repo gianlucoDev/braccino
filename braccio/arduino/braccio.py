@@ -1,6 +1,7 @@
 import logging
 import threading
 import time
+import struct
 from dataclasses import dataclass
 
 from routines.models import Position
@@ -37,25 +38,31 @@ class Braccio(Arduino):
         self.running = None
         super().__init__(name, serial_number, serial_path)
 
-    def set_target_position(self,
-                            position: Position, attack_angle: int, gripper: int, gripper_rot: int):
-        self._write_packet([SETPOS_ID,
-                            position.x,
-                            position.y,
-                            position.z,
-                            attack_angle if attack_angle is not None else 255,
-                            gripper_rot,
-                            gripper,
-                            ])
+    def set_target_position(self, position: Position, attack_angle: int, gripper: int,
+                            gripper_rot: int):
+        # NOTE: ints in Arduino are 16 bit long, so they need to be serialized as shorts
+        send_data = struct.pack(
+            '<BhhhhBB',
+            SETPOS_ID,  # byte
+            position.x,  # short
+            position.y,  # short
+            position.z,  # short
+            attack_angle if attack_angle is not None else -1,  # short
+            gripper_rot,  # byte
+            gripper,  # byte
+        )
+        self._write_packet(send_data)
 
-        data = self._read_packet(timeout=1)
-        ok = bool(data[1])
+        recv_data = self._read_packet(timeout=1)
+        _id, ok = struct.unpack('<B?', recv_data)
         return ok
 
     def is_on_position(self) -> bool:
-        self._write_packet([POS_QUERY_ID])
-        data = self._read_packet(timeout=1)
-        ok = bool(data[1])
+        send_data = struct.pack('<B', POS_QUERY_ID)
+        self._write_packet(send_data)
+
+        recv_data = self._read_packet(timeout=1)
+        _id, ok = struct.unpack('<B?', recv_data)
         return ok
 
     def wait_for_position_reached(self):
@@ -65,7 +72,8 @@ class Braccio(Arduino):
             pass
 
     def set_speed(self, speed):
-        self._write_packet([SETSPEED_ID, speed])
+        data = struct.pack('<BB', SETSPEED_ID, speed)
+        self._write_packet(data)
 
     def _run_thread(self, steps: StepIterator):
         self.running = steps

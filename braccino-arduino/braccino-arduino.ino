@@ -79,27 +79,28 @@ void onPacketReceived(const uint8_t* packet, size_t size) {
   }
 }
 
+int readInt(const uint8_t* buffer, int offset) {
+  int x;
+  memcpy(&x, buffer + offset, sizeof(int));
+  return x;
+}
+
 void onSetPosition(const uint8_t* packet, size_t size) {
   // skip first byte because it's the packet type ID
-
-  // target position
-  byte x = packet[1];
-  byte y = packet[2];
-  byte z = packet[3];
-
-  // TODO: handle attack angle
-  byte attack_angle = packet[4];
-  byte wrist_rot = packet[5];
-  byte gripper = packet[6];
+  int16_t x = readInt(packet, 1 + 0 * sizeof(int16_t));
+  int16_t y = readInt(packet, 1 + 1 * sizeof(int16_t));
+  int16_t z = readInt(packet, 1 + 2 * sizeof(int16_t));
+  int16_t attack_angle = readInt(packet, 1 + 3 * sizeof(int));
+  byte wrist_rot = packet[1 + 4 * sizeof(int)];
+  byte gripper = packet[1 + 4 * sizeof(int) + 1];
 
   float base, shoulder, elbow, wrist_ver;
   bool ok;
-  if (attack_angle == 255) {
+  if (attack_angle == -1) {
     ok = InverseK.solve(x, y, z, base, shoulder, elbow, wrist_ver);
   } else {
-    attack_angle = b2a(attack_angle);
-    ok =
-        InverseK.solve(x, y, z, base, shoulder, elbow, wrist_ver, attack_angle);
+    float phi = b2a(attack_angle);
+    ok = InverseK.solve(x, y, z, base, shoulder, elbow, wrist_ver, phi);
   }
 
   // if ik solution was found, set motor angles

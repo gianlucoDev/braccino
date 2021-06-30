@@ -1,5 +1,6 @@
 from enum import Enum
 import logging
+import struct
 
 from serial import Serial, to_bytes, SerialException
 from cobs import cobs
@@ -65,13 +66,15 @@ class Arduino:
             logger.error('Arduino at port %s took more than %s seconds to send "hello" message',
                          self.serial_path, MAX_CONNECTION_WAIT_TIME)
             self.connection_status = ConnectionStatus.ERR_NO_HANDSHAKE
+            return
+
+        packet_id, confirmation_byte = struct.unpack('<BB', data)
+        if packet_id == HELLO_ID and confirmation_byte == 0xAA:
+            self.connection_status = ConnectionStatus.CONNECTED
         else:
-            if data == to_bytes([HELLO_ID, 0xAA]):
-                self.connection_status = ConnectionStatus.CONNECTED
-            else:
-                logger.error(
-                    'Arduino at port %s sent malformed "hello" message', self.serial_path)
-                self.connection_status = ConnectionStatus.ERR_NO_HANDSHAKE
+            logger.error(
+                'Arduino at port %s sent malformed "hello" message', self.serial_path)
+            self.connection_status = ConnectionStatus.ERR_NO_HANDSHAKE
 
     def connect(self):
         if self.connection_status != ConnectionStatus.NOT_CONNECTED:
