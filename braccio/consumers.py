@@ -1,7 +1,7 @@
 from channels.generic.websocket import JsonWebsocketConsumer
 
-from routines.serializers import PositionSerializer
-from .arduino import BraccioManager, ContinuousStepIterator
+from braccio.serializers import BraccioPositionUpdateCommandSerializer
+from .arduino import BraccioManager, RepeatingStepIterator
 
 
 class BraccioConsumer(JsonWebsocketConsumer):
@@ -17,7 +17,7 @@ class BraccioConsumer(JsonWebsocketConsumer):
             self.close()
             return
 
-        self.step_iterator = ContinuousStepIterator()
+        self.step_iterator = RepeatingStepIterator()
         braccio.run(self.step_iterator)
         self.accept()
 
@@ -31,17 +31,12 @@ class BraccioConsumer(JsonWebsocketConsumer):
         packet_type = content["type"]
         data = content["data"]
 
-        if packet_type == "set_position":
-            self._set_position(data)
-        elif packet_type == "set_speed":
-            self._set_speed(data)
+        if packet_type == "update":
+            self._update(data)
+        else:
+            raise ValueError("Unknow packet type")
 
-    def _set_position(self, data):
-        serializer = PositionSerializer(data=data)
+    def _update(self, data):
+        serializer = BraccioPositionUpdateCommandSerializer(data=data)
         if serializer.is_valid():
-            position = serializer.validated_data
-            self.step_iterator.position = position
-
-    def _set_speed(self, data):
-        speed = int(data["speed"])
-        self.step_iterator.speed = speed
+            self.step_iterator.update(serializer.validated_data)

@@ -45,18 +45,36 @@ class RoutineStepIterator(StepIterator):
             )
 
 
-class ContinuousStepIterator(StepIterator):
+class RepeatingStepIterator(StepIterator):
 
     name = 'remote_control'
 
     def __init__(self):
-        # FIXME: set sensible defaults
-        self.speed = 30
-        self.attack_angle = None
-        self.gripper = 10
-        self.gripper_rot = 45
-        self.position = Position(0, 0, 0)
+        self._step = Step(
+            speed=20,
+            attack_angle=None,
+            gripper=50,
+            gripper_rot=0,
+            position=Position(250, 0, 125),
+            delay=100,
+            wait_for_position=False,
+        )
         self._stop = False
+
+    def update(self, data):
+        if self._stop:
+            raise ValueError(
+                "Attempted to update the value after the iterator has already stopped")
+
+        self._step = Step(
+            speed=data["speed"],
+            attack_angle=data["attack_angle"],
+            gripper=data["gripper"],
+            gripper_rot=data["gripper_rot"],
+            position=data["position"],
+            delay=100,
+            wait_for_position=False,
+        )
 
     def stop(self):
         self._stop = True
@@ -67,13 +85,4 @@ class ContinuousStepIterator(StepIterator):
     def __next__(self):
         if self._stop:
             raise StopIteration
-
-        return Step(
-            delay=100,
-            wait_for_position=False,
-            speed=self.speed,
-            attack_angle=self.attack_angle,
-            gripper=self.gripper,
-            gripper_rot=self.gripper_rot,
-            position=self.position,
-        )
+        return self._step

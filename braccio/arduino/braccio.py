@@ -1,4 +1,3 @@
-import logging
 import threading
 import time
 import struct
@@ -8,7 +7,6 @@ from routines.models import Position
 from .arduino import Arduino
 from .step_iterators import StepIterator
 
-logger = logging.getLogger(__name__)
 
 # django -> arduino
 SETPOS_ID = 0x01
@@ -53,7 +51,7 @@ class Braccio(Arduino):
         )
         self._write_packet(send_data)
 
-        recv_data = self._read_packet(timeout=1)
+        recv_data = self._read_packet(timeout=2)
         _id, ok = struct.unpack('<B?', recv_data)
         return ok
 
@@ -87,7 +85,8 @@ class Braccio(Arduino):
                 step.position, step.attack_angle, step.gripper, step.gripper_rot)
 
             if not ik_solved:
-                logger.error('No ik solution found for step %s', step)
+                pass
+                # TODO: display an error to the user
             elif step.wait_for_position:
                 self.wait_for_position_reached()
 
