@@ -23,10 +23,11 @@ void setup() {
   packetSerial.setPacketHandler(&onPacketReceived);
 
   // initialize ik library
-  base_link.init(0, b2a(0.0), b2a(180.0));
-  upperarm_link.init(200, b2a(15.0), b2a(165.0));
-  forearm_link.init(200, b2a(0.0), b2a(180.0));
-  hand_link.init(270, b2a(0.0), b2a(180.0));
+  // braccio measurements from: https://github.com/cgxeiji/CGx-InverseK/issues/3
+  base_link.init(74, b2a(0.0), b2a(180.0));
+  upperarm_link.init(125, b2a(15.0), b2a(165.0));
+  forearm_link.init(125, b2a(0.0), b2a(180.0));
+  hand_link.init(195, b2a(0.0), b2a(180.0));
   InverseK.attach(base_link, upperarm_link, forearm_link, hand_link);
 
   // initialize braccio
