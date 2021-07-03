@@ -38,7 +38,6 @@ class Braccio(Arduino):
 
     def set_target_position(self, position: Position, attack_angle: int, gripper: int,
                             gripper_rot: int):
-        # NOTE: ints in Arduino are 16 bit long, so they need to be serialized as shorts
         send_data = struct.pack(
             '<BhhhhBB',
             SETPOS_ID,  # byte

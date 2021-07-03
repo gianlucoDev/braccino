@@ -2,21 +2,9 @@
 #include <PacketSerial.h>
 
 #include "./braccio-control.h"
+#include "./packets.h"
 
-// serial variables
 PacketSerial packetSerial;
-
-// django -> arduino
-const byte SETPOS_ID = 0x01;
-const byte POS_QUERY_ID = 0x02;
-const byte SETSPEED_ID = 0x03;
-
-// django <- arduino
-const byte HELLO_ID = 0x00;
-const byte SETPOS_REPLY_ID = 0x01;
-const byte POS_QUERY_REPLY_ID = 0x02;
-
-// braccio links
 Link base_link, upperarm_link, forearm_link, hand_link;
 
 // braccio control variables
@@ -57,51 +45,43 @@ void loop() {
 }
 
 void sendReady() {
-  byte ping_data[] = {HELLO_ID, 0xAA};
-  packetSerial.send(ping_data, 2);
+  helloPacket p = {HELLO_ID, 0xAA};
+  packetSerial.send((uint8_t *)&p, sizeof(p));
 }
 
-void onPacketReceived(const uint8_t* packet, size_t size) {
-  byte packetId = packet[0];
+void onPacketReceived(const uint8_t *buffer, size_t size) {
+  byte packetId = buffer[0];
 
   switch (packetId) {
     case SETPOS_ID:
-      onSetPosition(packet, size);
+      onSetPosition(buffer, size);
       break;
 
     case POS_QUERY_ID:
-      onPositionQuery(packet, size);
+      onPositionQuery(buffer, size);
       break;
 
     case SETSPEED_ID:
-      onSetSpeed(packet, size);
+      onSetSpeed(buffer, size);
       break;
   }
 }
 
-int readInt(const uint8_t* buffer, int offset) {
-  int x;
-  memcpy(&x, buffer + offset, sizeof(int));
-  return x;
-}
+void onSetPosition(const uint8_t *buffer, size_t size) {
+  setposPacket p;
+  memcpy(&p, buffer, sizeof(p));
 
-void onSetPosition(const uint8_t* packet, size_t size) {
-  // skip first byte because it's the packet type ID
-  int16_t x = readInt(packet, 1 + 0 * sizeof(int16_t));
-  int16_t y = readInt(packet, 1 + 1 * sizeof(int16_t));
-  int16_t z = readInt(packet, 1 + 2 * sizeof(int16_t));
-  int16_t attack_angle = readInt(packet, 1 + 3 * sizeof(int));
-  byte wrist_rot = packet[1 + 4 * sizeof(int)];
-  byte gripper = packet[1 + 4 * sizeof(int) + 1];
+  // args
+  float x = (float)p.x;
+  float y = (float)p.y;
+  float z = (float)p.z;
+  float phi = p.attack_angle == -1 ? FREE_ANGLE : b2a((float)p.attack_angle);
 
+  // outuputs
   float base, shoulder, elbow, wrist_ver;
-  bool ok;
-  if (attack_angle == -1) {
-    ok = InverseK.solve(x, y, z, base, shoulder, elbow, wrist_ver);
-  } else {
-    float phi = b2a(attack_angle);
-    ok = InverseK.solve(x, y, z, base, shoulder, elbow, wrist_ver, phi);
-  }
+
+  // find a ik solution for the given coordinates
+  bool ok = InverseK.solve(x, y, z, base, shoulder, elbow, wrist_ver, phi);
 
   // if ik solution was found, set motor angles
   if (ok) {
@@ -114,16 +94,16 @@ void onSetPosition(const uint8_t* packet, size_t size) {
     targetAngles.shoulder = (int)a2b(shoulder);
     targetAngles.elbow = (int)a2b(elbow);
     targetAngles.wrist_ver = wv;
-    targetAngles.wrist_rot = (int)wrist_rot;
-    targetAngles.gripper = (int)gripper;
+    targetAngles.wrist_rot = (int)p.wrist_rot;
+    targetAngles.gripper = (int)p.gripper;
   }
 
   // communicate wheter a ik solution was found
-  byte reply_data[] = {SETPOS_REPLY_ID, (byte)ok};
-  packetSerial.send(reply_data, 2);
+  setpostReplyPacket response = {SETPOS_REPLY_ID, ok};
+  packetSerial.send((uint8_t *)&response, sizeof(response));
 }
 
-void onPositionQuery(const uint8_t* packet, size_t size) {
+void onPositionQuery(const uint8_t *buffer, size_t size) {
   braccioAngles currentAngles = braccioCurrentAngles();
 
   // wether braccio has reached target position
@@ -134,12 +114,13 @@ void onPositionQuery(const uint8_t* packet, size_t size) {
                          currentAngles.wrist_rot == targetAngles.wrist_rot &&
                          currentAngles.gripper == targetAngles.gripper;
 
-  byte reply_data[] = {POS_QUERY_REPLY_ID, (byte)positionReached};
-  packetSerial.send(reply_data, 2);
+  posQueryReplyPacket p = {POS_QUERY_REPLY_ID, (byte)positionReached};
+  packetSerial.send((uint8_t *)&p, sizeof(p));
 }
 
-void onSetSpeed(const uint8_t* packet, size_t size) {
-  // first byte is packet ID
-  // second byte is desired speed
-  speed = packet[1];
+void onSetSpeed(const uint8_t *buffer, size_t size) {
+  setspeedPacket p;
+  memcpy(&p, buffer, sizeof(p));
+
+  speed = p.speed;
 }
