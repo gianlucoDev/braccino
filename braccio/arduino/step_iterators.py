@@ -72,7 +72,7 @@ class RepeatingStepIterator(StepIterator):
             gripper=data["gripper"],
             gripper_rot=data["gripper_rot"],
             position=data["position"],
-            delay=100,
+            delay=0,
             wait_for_position=False,
         )
 
