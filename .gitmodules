@@ -1,0 +1,3 @@
+[submodule "braccio-urdf"]
+	path = braccio-urdf
+	url = https://github.com/jonabalzer/braccio_description.git
