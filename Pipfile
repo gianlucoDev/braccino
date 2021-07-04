@@ -10,6 +10,7 @@ django-cors-headers = "~=3.7.0"
 pyserial = "~=3.5"
 channels = "~=3.0.3"
 cobs = "~=1.1.4"
+ikpy = "*"
 
 [dev-packages]
 autopep8 = "*"
