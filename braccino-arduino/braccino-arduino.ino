@@ -1,34 +1,18 @@
-#include <InverseK.h>
 #include <PacketSerial.h>
 
 #include "./braccio-control.h"
 #include "./packets.h"
 
 PacketSerial packetSerial;
-Link base_link, upperarm_link, forearm_link, hand_link;
 
 // braccio control variables
 braccioAngles targetAngles;
 int speed = 30;
 
-// Quick conversion from the Braccio angle system to radians
-float b2a(float b) { return b / 180.0 * PI - HALF_PI; }
-
-// Quick conversion from radians to the Braccio angle system
-float a2b(float a) { return (a + HALF_PI) * 180 / PI; }
-
 void setup() {
   // initialize serial
   packetSerial.begin(38400);
   packetSerial.setPacketHandler(&onPacketReceived);
-
-  // initialize ik library
-  // braccio measurements from: https://github.com/cgxeiji/CGx-InverseK/issues/3
-  base_link.init(74, b2a(0.0), b2a(180.0));
-  upperarm_link.init(125, b2a(15.0), b2a(165.0));
-  forearm_link.init(125, b2a(0.0), b2a(180.0));
-  hand_link.init(195, b2a(0.0), b2a(180.0));
-  InverseK.attach(base_link, upperarm_link, forearm_link, hand_link);
 
   // initialize braccio
   braccioBegin();
@@ -54,8 +38,8 @@ void onPacketReceived(const uint8_t *buffer, size_t size) {
   byte packetId = buffer[0];
 
   switch (packetId) {
-    case SETPOS_ID:
-      onSetPosition(buffer, size);
+    case SET_ANGLES_ID:
+      onSetAngles(buffer, size);
       break;
 
     case POS_QUERY_ID:
@@ -68,40 +52,20 @@ void onPacketReceived(const uint8_t *buffer, size_t size) {
   }
 }
 
-void onSetPosition(const uint8_t *buffer, size_t size) {
-  setposPacket p;
+void onSetAngles(const uint8_t *buffer, size_t size) {
+  setAnglesPacket p;
   memcpy(&p, buffer, sizeof(p));
 
-  // args
-  float x = (float)p.x;
-  float y = (float)p.y;
-  float z = (float)p.z;
-  float phi = p.attack_angle == -1 ? FREE_ANGLE : b2a((float)p.attack_angle);
+  // apparently someone mounted the motor upside down
+  // so i'm just going to reverse the angle
+  int wrist_ver = 180 - p.wrist_ver;
 
-  // outuputs
-  float base, shoulder, elbow, wrist_ver;
-
-  // find a ik solution for the given coordinates
-  bool ok = InverseK.solve(x, y, z, base, shoulder, elbow, wrist_ver, phi);
-
-  // if ik solution was found, set motor angles
-  if (ok) {
-    // apparently someone mounted the motor upside down
-    // so i'm just going to reverse the angle
-    int wv = (int)a2b(wrist_ver);
-    wv = 180 - wv;
-
-    targetAngles.base = (int)a2b(base);
-    targetAngles.shoulder = (int)a2b(shoulder);
-    targetAngles.elbow = (int)a2b(elbow);
-    targetAngles.wrist_ver = wv;
-    targetAngles.wrist_rot = (int)p.wrist_rot;
-    targetAngles.gripper = (int)p.gripper;
-  }
-
-  // communicate wheter a ik solution was found
-  setpostReplyPacket response = {SETPOS_REPLY_ID, ok};
-  packetSerial.send((uint8_t *)&response, sizeof(response));
+  targetAngles.base = p.base;
+  targetAngles.shoulder = p.shoulder;
+  targetAngles.elbow = p.elbow;
+  targetAngles.wrist_ver = wrist_ver;
+  targetAngles.wrist_rot = p.wrist_rot;
+  targetAngles.gripper = p.gripper;
 }
 
 void onPositionQuery(const uint8_t *buffer, size_t size) {
@@ -115,7 +79,7 @@ void onPositionQuery(const uint8_t *buffer, size_t size) {
                          currentAngles.wrist_rot == targetAngles.wrist_rot &&
                          currentAngles.gripper == targetAngles.gripper;
 
-  posQueryReplyPacket p = {POS_QUERY_REPLY_ID, (byte)positionReached};
+  posQueryReplyPacket p = {POS_QUERY_REPLY_ID, positionReached};
   packetSerial.send((uint8_t *)&p, sizeof(p));
 }
 

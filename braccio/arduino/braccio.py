@@ -2,10 +2,28 @@ import threading
 import time
 import struct
 from dataclasses import dataclass
+from math import degrees
+from django.conf import settings
+from ikpy.chain import Chain
 
-from routines.models import Position
 from .arduino import Arduino
 from .step_iterators import StepIterator
+
+
+# Braccio kinematic chain.
+# Links:
+#   0: origin link inserted by ikpy, unused
+#   1: base
+#   2: shoulder
+#   3: elbow
+#   4: wrist_ver
+#   5: wrist_rot
+#   6: gripper_base, unused
+#   7: gripper_fix, unused
+braccio_chain = Chain.from_urdf_file(
+    settings.BASE_DIR.joinpath('./braccio-urdf/urdf/braccio.urdf'),
+    active_links_mask=[False, True, True, True, True, False, False, False],
+    name='braccio')
 
 
 # django -> arduino
@@ -36,23 +54,18 @@ class Braccio(Arduino):
         self.running = None
         super().__init__(name, serial_number, serial_path)
 
-    def set_target_position(self, position: Position, attack_angle: int, gripper: int,
-                            gripper_rot: int):
+    def set_target_angles(self, angles: Angles):
         send_data = struct.pack(
-            '<BhhhhBB',
-            SETPOS_ID,  # byte
-            position.x,  # short
-            position.y,  # short
-            position.z,  # short
-            attack_angle if attack_angle is not None else -1,  # short
-            gripper_rot,  # byte
-            gripper,  # byte
+            '<BBBBBBB',
+            SETPOS_ID,
+            angles.base,
+            angles.shoulder,
+            angles.elbow,
+            angles.wrist_ver,
+            angles.wrist_rot,
+            angles.gripper,
         )
         self._write_packet(send_data)
-
-        recv_data = self._read_packet(timeout=2)
-        _id, ok = struct.unpack('<B?', recv_data)
-        return ok
 
     def is_on_position(self) -> bool:
         send_data = struct.pack('<B', POS_QUERY_ID)
@@ -76,17 +89,31 @@ class Braccio(Arduino):
         self.running = steps
 
         for step in steps:
-            # set speed
+            # scale from millimiters to meters
+            position = [step.position.x / 1000,
+                        step.position.y / 1000,
+                        step.position.z / 1000]
+
+            # TODO: take into account attack_angle
+            ik = braccio_chain.inverse_kinematics(
+                target_position=position)
+
+            # convert ik solution to braccio angles
+            ik_degrees = [int(degrees(rad_angle)) for rad_angle in ik]
+            angles = Angles(
+                base=ik_degrees[1],
+                shoulder=ik_degrees[2],
+                elbow=ik_degrees[3],
+                wrist_ver=ik_degrees[4],
+                wrist_rot=step.gripper_rot,
+                gripper=step.gripper,
+            )
+
+            # send data to braccio
             self.set_speed(step.speed)
+            self.set_target_angles(angles)
 
-            # set position
-            ik_solved = self.set_target_position(
-                step.position, step.attack_angle, step.gripper, step.gripper_rot)
-
-            if not ik_solved:
-                pass
-                # TODO: display an error to the user
-            elif step.wait_for_position:
+            if step.wait_for_position:
                 self.wait_for_position_reached()
 
             # wait specified delay
