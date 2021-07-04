@@ -55,7 +55,7 @@ class RepeatingStepIterator(StepIterator):
             attack_angle=None,
             gripper=50,
             gripper_rot=0,
-            position=Position(250, 0, 125),
+            position=Position(50, 0, 200),
             delay=100,
             wait_for_position=False,
         )
