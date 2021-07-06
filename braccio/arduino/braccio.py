@@ -5,6 +5,8 @@ from dataclasses import dataclass
 from math import degrees
 from django.conf import settings
 from ikpy.chain import Chain
+import ikpy.utils.plot as plot_utils
+import matplotlib.pyplot as plt
 
 from .arduino import Arduino
 from .step_iterators import StepIterator
@@ -109,7 +111,17 @@ class Braccio(Arduino):
                 gripper=step.gripper,
             )
 
-            # send data to braccio
+            if settings.BRACCIO_SIMULATION_MODE:
+                _fig, ax = plot_utils.init_3d_figure()
+                braccio_chain.plot(ik, ax, target=position)
+                plt.xlim(-0.3, 0.3)
+                plt.ylim(-0.3, 0.3)
+                ax.legend()
+                plt.show()
+
+                # if we are in simulation mode, do not actually send commands to the braccio
+                continue
+
             self.set_speed(step.speed)
             self.set_target_angles(angles)
 

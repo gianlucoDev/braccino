@@ -2,6 +2,8 @@ from enum import Enum
 import logging
 import struct
 
+from django.conf import settings
+
 from serial import Serial, to_bytes, SerialException
 from cobs import cobs
 
@@ -79,6 +81,11 @@ class Arduino:
     def connect(self):
         if self.connection_status != ConnectionStatus.NOT_CONNECTED:
             raise ValueError("Serial port already open")
+
+        # if we are in simultion mode, set as connected and do nothing else
+        if settings.BRACCIO_SIMULATION_MODE:
+            self.connection_status = ConnectionStatus.CONNECTED
+            return
 
         self.connection_status = ConnectionStatus.CONNECTING
         try:
