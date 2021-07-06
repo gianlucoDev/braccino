@@ -139,4 +139,4 @@ ASGI_APPLICATION = "braccino.asgi.application"
 # - All other connected braccios will be ignored.
 # - Every movements sent to the simulated Braccio will be show on a plot using matplotlib.
 # The plot will block uintil it is closed by the user.
-BRACCIO_SIMULATION_MODE=True
+BRACCIO_SIMULATION_MODE=False

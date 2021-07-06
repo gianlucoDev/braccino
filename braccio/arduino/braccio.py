@@ -23,8 +23,8 @@ from .step_iterators import StepIterator
 #   6: gripper_base, unused
 #   7: gripper_fix, unused
 braccio_chain = Chain.from_urdf_file(
-    settings.BASE_DIR.joinpath('./braccio-urdf/urdf/braccio.urdf'),
-    active_links_mask=[False, True, True, True, True, False, False, False],
+    settings.BASE_DIR.joinpath('./braccio-urdf/urdf/braccio_arm.urdf'),
+    # active_links_mask=[False, True, True, True, True, False, False],
     name='braccio')
 
 
