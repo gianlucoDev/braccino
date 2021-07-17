@@ -2,6 +2,8 @@ import shutil
 import subprocess
 import threading
 import time
+from typing import Dict
+from django.conf import settings
 
 from braccio.util.singleton import Singleton
 from braccio.util.json import json_iter
@@ -10,7 +12,16 @@ from .braccio import Braccio
 
 class BraccioManager(metaclass=Singleton):
     def __init__(self):
-        self.braccios = {}
+        self.braccios: Dict[str, Braccio] = {}
+
+        if settings.BRACCIO_SIMULATION_MODE:
+            serial_no = '1234567890'
+            self.braccios[serial_no] = Braccio('simulated_braccio', serial_no, '/dev/tyyACM0')
+            self.braccios[serial_no].connect()
+
+            # stops connection watcher from starting
+            # in simulation mode we only want the simulated braccio
+            return
 
         # watch for board changes
         self.thread = threading.Thread(target=self._listen_for_updates)

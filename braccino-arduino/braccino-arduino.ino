@@ -1,34 +1,18 @@
-#include <InverseK.h>
 #include <PacketSerial.h>
 
 #include "./braccio-control.h"
 #include "./packets.h"
 
 PacketSerial packetSerial;
-Link base_link, upperarm_link, forearm_link, hand_link;
 
 // braccio control variables
 braccioAngles targetAngles;
 int speed = 30;
 
-// Quick conversion from the Braccio angle system to radians
-float b2a(float b) { return b / 180.0 * PI - HALF_PI; }
-
-// Quick conversion from radians to the Braccio angle system
-float a2b(float a) { return (a + HALF_PI) * 180 / PI; }
-
 void setup() {
   // initialize serial
   packetSerial.begin(38400);
   packetSerial.setPacketHandler(&onPacketReceived);
-
-  // initialize ik library
-  // braccio measurements from: https://github.com/cgxeiji/CGx-InverseK/issues/3
-  base_link.init(74, b2a(0.0), b2a(180.0));
-  upperarm_link.init(125, b2a(15.0), b2a(165.0));
-  forearm_link.init(125, b2a(0.0), b2a(180.0));
-  hand_link.init(195, b2a(0.0), b2a(180.0));
-  InverseK.attach(base_link, upperarm_link, forearm_link, hand_link);
 
   // initialize braccio
   braccioBegin();
@@ -46,65 +30,46 @@ void loop() {
 }
 
 void sendReady() {
-  helloPacket p = {HELLO_ID, 0xAA};
+  sndPacket p;
+  p.id = sndPacketId::hello;
+  p.data.hello = {0xAA};
   packetSerial.send((uint8_t *)&p, sizeof(p));
 }
 
 void onPacketReceived(const uint8_t *buffer, size_t size) {
-  byte packetId = buffer[0];
+  rcvPacket p;
+  size_t copySize = min(size, sizeof(p));
+  memcpy(&p, buffer, copySize);
 
-  switch (packetId) {
-    case SETPOS_ID:
-      onSetPosition(buffer, size);
+  switch (p.id) {
+    case rcvPacketId::setAngles:
+      onSetAngles(p.data.setAngles);
       break;
 
-    case POS_QUERY_ID:
-      onPositionQuery(buffer, size);
+    case rcvPacketId::posQuery:
+      onPositionQuery(p.data.posQuery);
       break;
 
-    case SETSPEED_ID:
-      onSetSpeed(buffer, size);
+    case rcvPacketId::setSpeed:
+      onSetSpeed(p.data.setSpeed);
       break;
   }
 }
 
-void onSetPosition(const uint8_t *buffer, size_t size) {
-  setposPacket p;
-  memcpy(&p, buffer, sizeof(p));
+void onSetAngles(setAnglesData d) {
+  // apparently someone mounted the motor upside down
+  // so i'm just going to reverse the angle
+  int wrist_ver = 180 - d.wrist_ver;
 
-  // args
-  float x = (float)p.x;
-  float y = (float)p.y;
-  float z = (float)p.z;
-  float phi = p.attack_angle == -1 ? FREE_ANGLE : b2a((float)p.attack_angle);
-
-  // outuputs
-  float base, shoulder, elbow, wrist_ver;
-
-  // find a ik solution for the given coordinates
-  bool ok = InverseK.solve(x, y, z, base, shoulder, elbow, wrist_ver, phi);
-
-  // if ik solution was found, set motor angles
-  if (ok) {
-    // apparently someone mounted the motor upside down
-    // so i'm just going to reverse the angle
-    int wv = (int)a2b(wrist_ver);
-    wv = 180 - wv;
-
-    targetAngles.base = (int)a2b(base);
-    targetAngles.shoulder = (int)a2b(shoulder);
-    targetAngles.elbow = (int)a2b(elbow);
-    targetAngles.wrist_ver = wv;
-    targetAngles.wrist_rot = (int)p.wrist_rot;
-    targetAngles.gripper = (int)p.gripper;
-  }
-
-  // communicate wheter a ik solution was found
-  setpostReplyPacket response = {SETPOS_REPLY_ID, ok};
-  packetSerial.send((uint8_t *)&response, sizeof(response));
+  targetAngles.base = d.base;
+  targetAngles.shoulder = d.shoulder;
+  targetAngles.elbow = d.elbow;
+  targetAngles.wrist_ver = wrist_ver;
+  targetAngles.wrist_rot = d.wrist_rot;
+  targetAngles.gripper = d.gripper;
 }
 
-void onPositionQuery(const uint8_t *buffer, size_t size) {
+void onPositionQuery(posQueryData d) {
   braccioAngles currentAngles = braccioCurrentAngles();
 
   // wether braccio has reached target position
@@ -115,13 +80,10 @@ void onPositionQuery(const uint8_t *buffer, size_t size) {
                          currentAngles.wrist_rot == targetAngles.wrist_rot &&
                          currentAngles.gripper == targetAngles.gripper;
 
-  posQueryReplyPacket p = {POS_QUERY_REPLY_ID, (byte)positionReached};
+  sndPacket p;
+  p.id = sndPacketId::posQueryReply;
+  p.data.posQueryReply = {positionReached};
   packetSerial.send((uint8_t *)&p, sizeof(p));
 }
 
-void onSetSpeed(const uint8_t *buffer, size_t size) {
-  setspeedPacket p;
-  memcpy(&p, buffer, sizeof(p));
-
-  speed = p.speed;
-}
+void onSetSpeed(setSpeedData d) { speed = d.speed; }
