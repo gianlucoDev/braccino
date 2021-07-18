@@ -1,3 +1,0 @@
-[submodule "braccio-urdf"]
-	path = braccio-urdf
-	url = https://github.com/grassjelly/ros_braccio_urdf.git

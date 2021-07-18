@@ -1,32 +1,15 @@
 import threading
 import time
 import struct
+import logging
 from dataclasses import dataclass
-from math import degrees
 from django.conf import settings
-from ikpy.chain import Chain
-import ikpy.utils.plot as plot_utils
-import matplotlib.pyplot as plt
 
 from .arduino import Arduino
 from .step_iterators import StepIterator
+from .ik import braccio_ik
 
-
-# Braccio kinematic chain.
-# Links:
-#   0: origin link inserted by ikpy, unused
-#   1: base
-#   2: shoulder
-#   3: elbow
-#   4: wrist_ver
-#   5: wrist_rot
-#   6: gripper_base, unused
-#   7: gripper_fix, unused
-braccio_chain = Chain.from_urdf_file(
-    settings.BASE_DIR.joinpath('./braccio-urdf/urdf/braccio_arm.urdf'),
-    # active_links_mask=[False, True, True, True, True, False, False],
-    name='braccio')
-
+logger = logging.getLogger(__name__)
 
 # django -> arduino
 SETPOS_ID = 0x01
@@ -91,34 +74,21 @@ class Braccio(Arduino):
         self.running = steps
 
         for step in steps:
-            # scale from millimiters to meters
-            position = [step.position.x / 1000,
-                        step.position.y / 1000,
-                        step.position.z / 1000]
+            ik_angles = braccio_ik(step.position, step.attack_angle)
+            if ik_angles is None:
+                logger.warning('position unreachable %s', step.position)
+                continue
 
-            # TODO: take into account attack_angle
-            ik = braccio_chain.inverse_kinematics(
-                target_position=position)
-
-            # convert ik solution to braccio angles
-            ik_degrees = [int(degrees(rad_angle)) for rad_angle in ik]
             angles = Angles(
-                base=ik_degrees[1],
-                shoulder=ik_degrees[2],
-                elbow=ik_degrees[3],
-                wrist_ver=ik_degrees[4],
+                base=ik_angles.base,
+                shoulder=ik_angles.shoulder,
+                elbow=ik_angles.elbow,
+                wrist_ver=ik_angles.wrist_ver,
                 wrist_rot=step.gripper_rot,
                 gripper=step.gripper,
             )
 
             if settings.BRACCIO_SIMULATION_MODE:
-                _fig, ax = plot_utils.init_3d_figure()
-                braccio_chain.plot(ik, ax, target=position)
-                plt.xlim(-0.3, 0.3)
-                plt.ylim(-0.3, 0.3)
-                ax.legend()
-                plt.show()
-
                 # if we are in simulation mode, do not actually send commands to the braccio
                 continue
 

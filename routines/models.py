@@ -5,7 +5,7 @@ from django.db import models
 class Routine(models.Model):
     name = models.CharField(max_length=50)
 
-
+# Represents a target position
 Position = namedtuple('Position', ('x', 'y', 'z'))
 
 
